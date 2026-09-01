@@ -1,0 +1,116 @@
+version: '3.8'
+
+services:
+  # ============================================================
+  # Auth Service - Matrix Auth Gateway
+  # ============================================================
+  # Flask app for Matrix room-based authentication
+  # See: AuthService/whatisthis.md for details
+  auth-service:
+    build:
+      context: .
+      dockerfile: AuthService/Dockerfile
+    container_name: ${COMPOSE_PROJECT_NAME:-homeserver}_auth-service
+    ports:
+      - "5000:5000"
+    environment:
+      - HOMESERVER_URL=${HOMESERVER_URL:-http://tuwunel:8008}
+      - BOT_ACCESS_TOKEN=${BOT_ACCESS_TOKEN}
+      - GATEWAY_SECRET_KEY=${GATEWAY_SECRET_KEY}
+      - MATRIX_SERVER_NAME=${MATRIX_SERVER_NAME:-keinstein0.ch}
+      - SESSION_MAX_AGE=604800
+      - MEMBERSHIP_CACHE_TTL=60
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - homeserver_internal
+    restart: unless-stopped
+
+  # ============================================================
+  # Status API - System Status Monitoring
+  # ============================================================
+  # Simple API for checking service health (not yet implemented)
+  # Will be written in Go or Flask
+  status-api:
+    build:
+      context: .
+      dockerfile: StatusAPI/Dockerfile
+    container_name: ${COMPOSE_PROJECT_NAME:-homeserver}_status-api
+    ports:
+      - "5001:5001"
+    environment:
+      - HOMESERVER_URL=${HOMESERVER_URL:-http://tuwunel:8008}
+      - AUTH_SERVICE_URL=http://auth-service:5000
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5001/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - homeserver_internal
+    restart: unless-stopped
+    profiles:
+      - api
+
+  # ============================================================
+  # Homepage - Svelte/Vite Application
+  # ============================================================
+  # Main web application with live previews via Vite
+  homepage:
+    build:
+      context: Homepage
+      dockerfile: Dockerfile.dev
+    container_name: ${COMPOSE_PROJECT_NAME:-homeserver}_homepage
+    ports:
+      - "5173:5173"  # Vite dev server
+      - "4173:4173"  # Vite preview (production-like)
+    environment:
+      - VITE_API_URL=${VITE_API_URL:-http://localhost:5000}
+      - VITE_AUTH_SERVICE_URL=http://auth-service:5000
+      - VITE_MATRIX_SERVER=${MATRIX_SERVER_NAME:-keinstein0.ch}
+    volumes:
+      - ./Homepage:/app:rw
+      - homepage_node_modules:/app/node_modules
+    networks:
+      - homeserver_internal
+    profiles:
+      - dev
+    command: npm run dev -- --host 0.0.0.0
+
+  # ============================================================
+  # Caddy - Reverse Proxy & Auth Handler
+  # ============================================================
+  # Handles routing, TLS, and Matrix auth forwarding
+  caddy:
+    image: caddy:2.11
+    container_name: ${COMPOSE_PROJECT_NAME:-homeserver}_caddy
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"  # For HTTP/3
+    volumes:
+      - ./Caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./Homepage:/apps/homepage:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    environment:
+      - CADDY_INGRESS_IP=${CADDY_INGRESS_IP:-}
+    networks:
+      - homeserver_internal
+    depends_on:
+      auth-service:
+        condition: service_healthy
+    restart: unless-stopped
+
+networks:
+  homeserver_internal:
+    driver: bridge
+
+volumes:
+  homepage_node_modules:
+  caddy_data:
+  caddy_config:

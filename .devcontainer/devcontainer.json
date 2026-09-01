@@ -1,0 +1,95 @@
+// Dev Container Configuration for Homeserver Central
+// This configures a development environment where you can edit all files
+// and run all services with live reload capabilities via Docker Compose.
+{
+  "name": "Homeserver Central Dev Container",
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu-22.04",
+  
+  "onCreateCommand": "sudo apt-get update && sudo apt-get install -y curl wget jq",
+  
+  "postCreateCommand": "bash .devcontainer/setup.sh",
+  
+  "forwardPorts": [
+    80,    // Caddy (reverse proxy)
+    443,   // Caddy (TLS)
+    5000,  // Auth Service (Flask)
+    5001,  // Status API (Flask)
+    5173,  // Homepage (Vite dev server)
+    4173   // Homepage (Vite preview)
+  ],
+  
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-python.flask",
+        "ms-python.vscode-pylance",
+        "bradlc.vscode-tailwindcss",
+        "svelte.svelte-vscode",
+        "ms-playwright.playwright",
+        "golang.go",
+        "redhat.vscode-yaml",
+        "github.copilot",
+        "ms-vscode.vscode-docker"
+      ],
+      "settings": {
+        "python.defaultInterpreterPath": "/usr/local/bin/python",
+        "python.analysis.typeCheckingMode": "basic",
+        "python.testing.pytestEnabled": true,
+        "python.testing.pytestArgs": ["tests"],
+        "python.linting.enabled": true,
+        "python.linting.flake8Enabled": true,
+        "python.formatting.provider": "black",
+        "editor.formatOnSave": true,
+        "files.associations": {
+          "*.html": "html",
+          "*.css": "css",
+          "*.js": "javascript",
+          "*.ts": "typescript",
+          "*.svelte": "svelte"
+        },
+        "files.exclude": {
+          "**/.git": true,
+          "**/.svn": true,
+          "**/.hg": true,
+          "**/CVS": true,
+          "**/.DS_Store": true,
+          "**/__pycache__": true,
+          "**/*.pyc": true,
+          "**/node_modules": true,
+          "**/.venv": true,
+          "**/dist": true,
+          "**/build": true
+        },
+        "search.exclude": {
+          "**/node_modules": true,
+          "**/__pycache__": true,
+          "**/.venv": true,
+          "**/dist": true
+        },
+        "remote.portsAttributes": {
+          "80": { "label": "Caddy HTTP" },
+          "443": { "label": "Caddy HTTPS" },
+          "5000": { "label": "Auth Service" },
+          "5001": { "label": "Status API" },
+          "5173": { "label": "Vite Dev Server" },
+          "4173": { "label": "Vite Preview" }
+        }
+      }
+    }
+  },
+  
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {},
+    "ghcr.io/devcontainers/feature/node:1": {
+      "installNpm": true
+    },
+    "ghcr.io/devcontainers/features/python:1": {
+      "installPip": true,
+      "pipPackages": "flask gunicorn requests itsdangerous pytest black flake8"
+    },
+    "ghcr.io/devcontainers/features/go:1": {}
+  },
+  
+  "postAttachCommand": "bash .devcontainer/post-attach.sh"
+}
