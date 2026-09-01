@@ -1,0 +1,97 @@
+# Reusable Matrix Forward Auth Snippet (For protected routes)
+# Usage: import matrix_gate "room-name-or-alias-or-id"
+(matrix_gate) {
+    forward_auth matrix-auth-gateway:5000 {
+        uri /verify?room={args[0]}
+        copy_headers X-Auth-User X-Auth-Power-Level
+
+        # Not logged in at all -> send to the static login page,
+        # remembering where they were headed and which room this
+        # route requires, so the gateway's /login POST can send them
+        # back to the right place afterwards.
+        @needs_login status 401
+        handle_response @needs_login {
+            redir * "https://{host}/login.html?redirect={http.request.orig_uri}&room={args[0]}" 302
+        }
+
+        # Logged in, but not a member of the required room -> static
+        # "access denied" page, no redirect loop.
+        @forbidden status 403
+        handle_response @forbidden {
+            rewrite * /403.html
+            file_server {
+                root /apps/homepage
+            }
+        }
+    }
+}
+
+
+
+# -------------------------------------------------------------
+# Matrix Subdomain
+# -------------------------------------------------------------
+matrix.keinstein0.ch {
+    # Matrix API routes
+    reverse_proxy tuwunel:8008
+}
+
+
+# -------------------------------------------------------------
+# WWW Domain + Matrix Well-Known Delegation
+# -------------------------------------------------------------
+
+www.keinstein0.ch {
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+        X-Frame-Options "DENY"
+        X-Content-Type-Options "nosniff"
+        -Server
+    }
+
+    root * /apps/homepage
+
+    # Matrix Client Discovery
+    header /_matrix/client/.well-known/matrix/client Access-Control-Allow-Origin "*"
+    respond /_matrix/client/.well-known/matrix/client `{"m.homeserver": {"base_url": "https://matrix.keinstein0.ch"}}` 200
+
+    # Matrix Server-to-Server Discovery (Federation)
+    header /_matrix/server/.well-known/matrix/server Access-Control-Allow-Origin "*"
+    respond /_matrix/server/.well-known/matrix/server `{"m.server": "matrix.keinstein0.ch:443"}` 200
+
+    # Public: the auth API itself. Exact paths only - does not match
+    # /login.html, which is a static file handled further down.
+    handle /login {
+        reverse_proxy matrix-auth-gateway:5000
+    }
+    handle /logout {
+        reverse_proxy matrix-auth-gateway:5000
+    }
+
+    # Public: the login page and any shared static assets (css/js/img -
+    # nothing sensitive lives there, so no need to gate them). Strip any
+    # client-supplied X-Auth-* headers here too, defensively, even though
+    # these paths don't reach a backend app that would trust them.
+    handle /login.html {
+        file_server
+    }
+    handle /assets/* {
+        file_server
+    }
+
+    # Everything else requires room membership. Strip any client-supplied
+    # X-Auth-* headers BEFORE forward_auth runs, so a visitor can't just
+    # set X-Auth-Power-Level: 100 on their own request - only the
+    # gateway's own /verify response can set these.
+    handle {
+       # header_up -X-Auth-User
+       # header_up -X-Auth-Power-Level
+        import matrix_gate "test-service"
+        file_server
+    }
+
+    handle_errors {
+        rewrite * /{err.status_code}.html
+        file_server
+    }
+}

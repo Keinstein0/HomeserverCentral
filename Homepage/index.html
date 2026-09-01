@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>keinstein0.ch</title>
+  <link rel="stylesheet" href="/assets/style.css">
+</head>
+<body>
+  <div class="page">
+    <div class="panel">
+      <h1>You're in.</h1>
+      <p class="muted">
+        If you can see this page, Caddy's forward_auth confirmed you're
+        signed in and a member of the required Matrix room before
+        serving it.
+      </p>
+      <p class="muted">
+        Your identity and room power level are available to any
+        <em>backend service</em> behind the gate via the
+        <code>X-Auth-User</code> / <code>X-Auth-Power-Level</code>
+        headers - this static page itself has no way to read those
+        (they're server-to-server only), so it can't greet you by name
+        without a small API call. Ask if you want that added.
+      </p>
+      <p><a href="/logout">Log out</a></p>
+    </div>
+  </div>
+</body>
+</html>

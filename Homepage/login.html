@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sign in</title>
+  <link rel="stylesheet" href="/assets/style.css">
+</head>
+<body>
+  <div class="page">
+    <div class="panel">
+      <h2>Sign in with your Matrix account</h2>
+
+      <div id="error" class="error" style="display:none;"></div>
+
+      <!-- Posts straight to the auth gateway. Caddy routes exactly
+           "/login" (this exact path, no .html) to matrix-auth-gateway;
+           everything else on this domain (including this file) is
+           served as a static file. -->
+      <form method="POST" action="/login">
+        <input type="hidden" name="redirect" id="redirect-field">
+        <input type="hidden" name="room" id="room-field">
+
+        <label for="username">Matrix user</label>
+        <input type="text" id="username" name="username" placeholder="alice or @alice:matrix.example.com"
+               required autofocus autocomplete="username">
+
+        <label for="password">Password</label>
+        <input type="password" id="password" name="password" required autocomplete="current-password">
+
+        <button type="submit">Sign in</button>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    // The gateway redirects failed attempts back here with error/redirect/
+    // room in the query string, so we can re-show the form in the same
+    // state along with a readable error message.
+    const params = new URLSearchParams(window.location.search);
+
+    const ERROR_MESSAGES = {
+      missing_fields: "Please enter both a username and password.",
+      invalid_credentials: "Invalid username or password.",
+    };
+
+    const errorCode = params.get("error");
+    if (errorCode) {
+      const box = document.getElementById("error");
+      box.textContent = ERROR_MESSAGES[errorCode] || "Something went wrong. Please try again.";
+      box.style.display = "block";
+    }
+
+    document.getElementById("redirect-field").value = params.get("redirect") || "/";
+    document.getElementById("room-field").value = params.get("room") || "";
+  </script>
+</body>
+</html>
