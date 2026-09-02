@@ -81,7 +81,7 @@
   
   "features": {
     "ghcr.io/devcontainers/features/docker-in-docker:2": {},
-    "ghcr.io/devcontainers/feature/node:1": {
+    "ghcr.io/devcontainers/features/node:1": {
       "installNpm": true
     },
     "ghcr.io/devcontainers/features/python:1": {
