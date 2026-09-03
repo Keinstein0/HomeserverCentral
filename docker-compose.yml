@@ -8,8 +8,8 @@ services:
   # See: AuthService/whatisthis.md for details
   auth-service:
     build:
-      context: .
-      dockerfile: AuthService/Dockerfile
+      context: ./AuthService
+      dockerfile: Dockerfile
     container_name: ${COMPOSE_PROJECT_NAME:-homeserver}_auth-service
     ports:
       - "5000:5000"
@@ -35,26 +35,26 @@ services:
   # ============================================================
   # Simple API for checking service health (not yet implemented)
   # Will be written in Go or Flask
-  status-api:
-    build:
-      context: .
-      dockerfile: StatusAPI/Dockerfile
-    container_name: ${COMPOSE_PROJECT_NAME:-homeserver}_status-api
-    ports:
-      - "5001:5001"
-    environment:
-      - HOMESERVER_URL=${HOMESERVER_URL:-http://tuwunel:8008}
-      - AUTH_SERVICE_URL=http://auth-service:5000
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5001/healthz"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-    networks:
-      - homeserver_internal
-    restart: unless-stopped
-    profiles:
-      - api
+  #status-api:
+  #  build:
+  #    context: .
+  #    dockerfile: StatusAPI/Dockerfile
+  #  container_name: ${COMPOSE_PROJECT_NAME:-homeserver}_status-api
+  #  ports:
+  #    - "5001:5001"
+  #  environment:
+  #    - HOMESERVER_URL=${HOMESERVER_URL:-http://tuwunel:8008}
+  #    - AUTH_SERVICE_URL=http://auth-service:5000
+  #  healthcheck:
+  #    test: ["CMD", "curl", "-f", "http://localhost:5001/healthz"]
+  #    interval: 30s
+  #    timeout: 10s
+  #    retries: 3
+  #  networks:
+  #    - homeserver_internal
+  #  restart: unless-stopped
+  #  profiles:
+  #    - api
 
   # ============================================================
   # Homepage - Svelte/Vite Application
@@ -75,11 +75,12 @@ services:
     volumes:
       - ./Homepage:/app:rw
       - homepage_node_modules:/app/node_modules
+      - static_build:/build_output
     networks:
       - homeserver_internal
     profiles:
       - dev
-    command: npm run dev -- --host 0.0.0.0
+    #command: npm run dev -- --host 0.0.0.0
 
   # ============================================================
   # Caddy - Reverse Proxy & Auth Handler
@@ -94,7 +95,7 @@ services:
       - "443:443/udp"  # For HTTP/3
     volumes:
       - ./Caddy/Caddyfile:/etc/caddy/Caddyfile:ro
-      - ./Homepage:/apps/homepage:ro
+      - static_build:/apps/homepage:ro
       - caddy_data:/data
       - caddy_config:/config
     environment:
@@ -112,5 +113,6 @@ networks:
 
 volumes:
   homepage_node_modules:
+  static_build:
   caddy_data:
   caddy_config:
