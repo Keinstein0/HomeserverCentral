@@ -8,7 +8,7 @@ const config = {
         adapter: adapter({
             pages: 'build',
             assets: 'build',
-            fallback: 'index.html', // Needed for SPA client-side routing
+            fallback: 'index.html',
             precompress: false,
             strict: false
         })
