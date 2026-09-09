@@ -1,1 +1,6 @@
 .vscode
+Homepage/node_modules
+*/node_modules
+.env
+.env
+Homepage/.svelte-kit

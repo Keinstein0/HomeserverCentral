@@ -1,0 +1,113 @@
+// Dev Container Configuration for Homeserver Central
+// This configures a development environment where you can edit all files
+// and run all services with live reload capabilities via Docker Compose.
+{
+  "name": "Homeserver Central Dev Container",
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu-22.04",
+  "onCreateCommand": "sudo apt-get update && sudo apt-get install -y curl wget jq golang-go && go install github.com/isaacphi/mcp-language-server@latest && pip install python-lsp-server && npm install -g typescript typescript-language-server",
+  "postCreateCommand": "bash .devcontainer/setup.sh",
+  //"postStartCommand": "nohup $HOME/go/bin/mcp-language-server --workspace /workspaces/HomeserverCentral --read-only --port 3001 > /tmp/mcp-server.log 2>&1 &",
+  // npx -y mcp-proxy --port 3001 -- /go/bin/mcp-language-server --workspace /workspaces/HomeserverCentral --lsp gopls
+  //"postStartCommand": "nohup sh -c 'npx -y mcp-proxy --port 3001 -- $HOME/go/bin/mcp-language-server --workspace /workspaces/HomeserverCentral --lsp gopls' > /tmp/mcp-server.log 2>&1 &",
+  "postStartCommand": "bash .devcontainer/mcp-start.sh",
+  "forwardPorts": [
+    80, // Caddy (reverse proxy)
+    443, // Caddy (TLS)
+    5000, // Auth Service (Flask)
+    5001, // Status API (Flask)
+    5173, // Homepage (Vite dev server)
+    4173, // Homepage (Vite preview)
+    3002, // Read-Only MCP Language Server
+    3003 // Fileserver MCP
+  ],
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-python.flask",
+        "ms-python.vscode-pylance",
+        "bradlc.vscode-tailwindcss",
+        "svelte.svelte-vscode",
+        "ms-playwright.playwright",
+        "golang.go",
+        "redhat.vscode-yaml",
+        "github.copilot",
+        "ms-vscode.vscode-docker",
+        "michelemelluso.gitignore"
+      ],
+      "settings": {
+        "python.defaultInterpreterPath": "/usr/local/bin/python",
+        "python.analysis.typeCheckingMode": "basic",
+        "python.testing.pytestEnabled": true,
+        "python.testing.pytestArgs": [
+          "tests"
+        ],
+        "python.linting.enabled": true,
+        "python.linting.flake8Enabled": true,
+        "python.formatting.provider": "black",
+        "editor.formatOnSave": true,
+        "files.associations": {
+          "*.html": "html",
+          "*.css": "css",
+          "*.js": "javascript",
+          "*.ts": "typescript",
+          "*.svelte": "svelte"
+        },
+        "files.exclude": {
+          "**/.git": true,
+          "**/.svn": true,
+          "**/.hg": true,
+          "**/CVS": true,
+          "**/.DS_Store": true,
+          "**/__pycache__": true,
+          "**/*.pyc": true,
+          "**/node_modules": true,
+          "**/.venv": true,
+          "**/dist": true,
+          "**/build": true
+        },
+        "search.exclude": {
+          "**/node_modules": true,
+          "**/__pycache__": true,
+          "**/.venv": true,
+          "**/dist": true
+        },
+        "remote.portsAttributes": {
+          "80": {
+            "label": "Caddy HTTP"
+          },
+          "443": {
+            "label": "Caddy HTTPS"
+          },
+          "5000": {
+            "label": "Auth Service"
+          },
+          "5001": {
+            "label": "Status API"
+          },
+          "5173": {
+            "label": "Vite Dev Server"
+          },
+          "4173": {
+            "label": "Vite Preview"
+          },
+          "3001": {
+            "label": "MCP Language Server (Chatbox)"
+          }
+        }
+      }
+    }
+  },
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {},
+    "ghcr.io/devcontainers/features/node:1": {
+      "installNpm": true
+    },
+    "ghcr.io/devcontainers/features/python:1": {
+      "installPip": true,
+      "pipPackages": "flask gunicorn requests itsdangerous pytest black flake8"
+    },
+    "ghcr.io/devcontainers/features/go:1": {}
+  },
+  "postAttachCommand": "bash .devcontainer/post-attach.sh"
+}

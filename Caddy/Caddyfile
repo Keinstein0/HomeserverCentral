@@ -1,3 +1,9 @@
+{
+    # Controls automatic SSL globally. Defaults to "on" if unset.
+    auto_https {$AUTO_HTTPS:on}
+}
+
+
 # Reusable Matrix Forward Auth Snippet (For protected routes)
 # Usage: import matrix_gate "room-name-or-alias-or-id"
 (matrix_gate) {
@@ -36,12 +42,11 @@ matrix.keinstein0.ch {
     reverse_proxy tuwunel:8008
 }
 
-
 # -------------------------------------------------------------
 # WWW Domain + Matrix Well-Known Delegation
 # -------------------------------------------------------------
 
-www.keinstein0.ch {
+www.keinstein0.ch, localhost {
     header {
         Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
         X-Frame-Options "DENY"
@@ -95,3 +100,7 @@ www.keinstein0.ch {
         file_server
     }
 }
+
+
+
+
