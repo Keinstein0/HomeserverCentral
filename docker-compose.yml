@@ -1,16 +1,14 @@
-version: '3.8'
-
 services:
   # ============================================================
   # Auth Service - Matrix Auth Gateway
   # ============================================================
   # Flask app for Matrix room-based authentication
   # See: AuthService/whatisthis.md for details
-  auth-service:
+  matrix-auth-gateway:
     build:
       context: ./AuthService
       dockerfile: Dockerfile
-    container_name: ${COMPOSE_PROJECT_NAME:-homeserver}_auth-service
+    container_name: matrix-auth-gateway
     ports:
       - "5000:5000"
     environment:
@@ -44,7 +42,7 @@ services:
   #    - "5001:5001"
   #  environment:
   #    - HOMESERVER_URL=${HOMESERVER_URL:-http://tuwunel:8008}
-  #    - AUTH_SERVICE_URL=http://auth-service:5000
+  #    - AUTH_SERVICE_URL=http://auth-service-gateway:5000
   #  healthcheck:
   #    test: ["CMD", "curl", "-f", "http://localhost:5001/healthz"]
   #    interval: 30s
@@ -70,7 +68,7 @@ services:
       - "4173:4173"  # Vite preview (production-like)
     environment:
       - VITE_API_URL=${VITE_API_URL:-http://localhost:5000}
-      - VITE_AUTH_SERVICE_URL=http://auth-service:5000
+      - VITE_AUTH_SERVICE_URL=http://matrix-auth-gateway:5000
       - VITE_MATRIX_SERVER=${MATRIX_SERVER_NAME:-keinstein0.ch}
     volumes:
       - ./Homepage:/app:rw
@@ -109,7 +107,7 @@ services:
     networks:
       - homeserver_internal
     depends_on:
-      auth-service:
+      matrix-auth-gateway:
         condition: service_healthy
     restart: unless-stopped
 
