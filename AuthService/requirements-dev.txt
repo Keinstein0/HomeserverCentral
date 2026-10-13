@@ -1,0 +1,5 @@
+# Development/test dependencies for the Auth Service.
+# These are NOT installed in the production Docker image; they are only
+# needed to run the unit test suite locally and in CI.
+pytest==8.3.3
+responses==0.25.3

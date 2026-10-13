@@ -33,26 +33,12 @@
     </div>
   </div>
 
-  <script>
-    // The gateway redirects failed attempts back here with error/redirect/
-    // room in the query string, so we can re-show the form in the same
-    // state along with a readable error message.
-    const params = new URLSearchParams(window.location.search);
-
-    const ERROR_MESSAGES = {
-      missing_fields: "Please enter both a username and password.",
-      invalid_credentials: "Invalid username or password.",
-    };
-
-    const errorCode = params.get("error");
-    if (errorCode) {
-      const box = document.getElementById("error");
-      box.textContent = ERROR_MESSAGES[errorCode] || "Something went wrong. Please try again.";
-      box.style.display = "block";
-    }
-
-    document.getElementById("redirect-field").value = params.get("redirect") || "/";
-    document.getElementById("room-field").value = params.get("room") || "";
+  <script type="module">
+    // Login-page wiring extracted into a testable ES module
+    // (static/lib/loginForm.js) so the logic can be unit-tested with Vitest.
+    // Caddy serves this file as a static asset at /lib/loginForm.js.
+    import { initLoginPage } from '/lib/loginForm.js';
+    initLoginPage();
   </script>
 </body>
 </html>
