@@ -31,28 +31,34 @@ services:
   # ============================================================
   # Status API - System Status Monitoring
   # ============================================================
-  # Simple API for checking service health (not yet implemented)
-  # Will be written in Go or Flask
-  #status-api:
-  #  build:
-  #    context: .
-  #    dockerfile: StatusAPI/Dockerfile
-  #  container_name: ${COMPOSE_PROJECT_NAME:-homeserver}_status-api
-  #  ports:
-  #    - "5001:5001"
-  #  environment:
-  #    - HOMESERVER_URL=${HOMESERVER_URL:-http://tuwunel:8008}
-  #    - AUTH_SERVICE_URL=http://auth-service-gateway:5000
-  #  healthcheck:
-  #    test: ["CMD", "curl", "-f", "http://localhost:5001/healthz"]
-  #    interval: 30s
-  #    timeout: 10s
-  #    retries: 3
-  #  networks:
-  #    - homeserver_internal
-  #  restart: unless-stopped
-  #  profiles:
-  #    - api
+  # Lightweight Go microservice for checking service health.
+  # See: StatusAPI/designfile.md for architecture details
+  status-api:
+    build:
+      context: .
+      dockerfile: StatusAPI/Dockerfile
+    container_name: ${COMPOSE_PROJECT_NAME:-homeserver}_status-api
+    ports:
+      - "5001:5001"
+    environment:
+      - PORT=5001
+      - CACHE_TTL_SECONDS=${CACHE_TTL_SECONDS:-10}
+      - AUTH_SERVICE_URL=http://matrix-auth-gateway:5000
+      - HOMESERVER_URL=${HOMESERVER_URL:-http://tuwunel:8008}
+      - HOMEPAGE_URL=http://homepage:5173
+      - CADDY_URL=http://caddy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5001/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+    networks:
+      - homeserver_internal
+    depends_on:
+      matrix-auth-gateway:
+        condition: service_healthy
+    restart: unless-stopped
 
   # ============================================================
   # Homepage - Svelte/Vite Application
