@@ -1,0 +1,26 @@
+environment:
+  HOMESERVER_URL: ${HOMESERVER_URL:-http://tuwunel:8008}
+  BOT_ACCESS_TOKEN: ${BOT_ACCESS_TOKEN}
+  GATEWAY_SECRET_KEY: ${BOT_ACCESS_TOKEN}
+  SESSION_MAX_AGE: 604800
+  MEMBERSHIP_CACHE_TTL: 60
+
+# Health check endpoint
+healthcheck:
+  test: ["CMD", "curl", "-f", "http://localhost:5000/healthz"]
+  interval: 30s
+  timeout: 10s
+  retries: 3
+
+# Resource limits for production
+deploy:
+  resources:
+    limits:
+      cpus: '0.5'
+      memory: 512M
+    reservations:
+      cpus: '0.25'
+      memory: 256M
+
+# Restart policy
+restart: unless-stopped
