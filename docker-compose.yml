@@ -117,6 +117,25 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
+  # ============================================================
+  # Tuwunel Mock - Matrix Homeserver mock (test/dev only)
+  # ============================================================
+  # Lightweight stand-in for the real Matrix homeserver so unit and
+  # integration tests never need the production tuwunel instance or
+  # custom DNS. Ignored by `docker compose up` (no default profile);
+  # started by `docker compose --profile test up`. The network alias
+  # `tuwunel` makes HOMESERVER_URL=http://tuwunel:8008 resolve to it.
+  tuwunel-mock:
+    build:
+      context: ./tests/mock-tuwunel
+    container_name: tuwunel-mock
+    networks:
+      homeserver_internal:
+        aliases:
+          - tuwunel
+    profiles:
+      - test
+
 networks:
   homeserver_internal:
     driver: bridge
