@@ -1,6 +1,13 @@
 {
-    # Controls automatic SSL globally. Defaults to "on" if unset.
-    auto_https {$AUTO_HTTPS:on}
+    # Controls automatic HTTPS globally via the AUTO_HTTPS env var.
+    #   - Testing/dev: set AUTO_HTTPS=off  -> plain HTTP, no cert attempts.
+    #   - Prod (AUTO_HTTPS unset): falls back to "disable_redirects" -> Caddy
+    #     still auto-provisions TLS certificates for the *.keinstein0.ch
+    #     hostnames and serves HTTPS on :443, only the automatic HTTP->HTTPS
+    #     redirect is skipped. (Caddy 2.11 no longer accepts "on"; the full
+    #     default-with-redirects behavior is only available by omitting this
+    #     directive, which can't be expressed through env substitution.)
+    auto_https {$AUTO_HTTPS:disable_redirects}
 }
 
 
@@ -41,6 +48,17 @@ matrix.keinstein0.ch {
     # Matrix API routes
     reverse_proxy tuwunel:8008
 }
+
+# -------------------------------------------------------------
+# Status Subdomain
+# -------------------------------------------------------------
+status.keinstein0.ch {
+    # Proxy to the Status API Go microservice (see StatusAPI/designfile.md).
+    # Hostname is the docker-compose service name on the homeserver_internal
+    # network; port 5001 is the Status API listen port.
+    reverse_proxy status-api:5001
+}
+
 
 # -------------------------------------------------------------
 # WWW Domain + Matrix Well-Known Delegation
