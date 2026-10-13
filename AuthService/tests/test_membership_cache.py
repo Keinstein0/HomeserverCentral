@@ -7,23 +7,31 @@ import responses
 import app
 from conftest import make_session_cookie
 
-
 HOMESERVER = "http://tuwunel:8008"
 ALIAS = "#status-viewers:keinstein0.ch"
 ROOM_ID = "!statusroom:keinstein0.ch"
 ALIAS_URL = f"{HOMESERVER}/_matrix/client/v3/directory/room/{quote(ALIAS, safe='')}"
-JOINED_URL = f"{HOMESERVER}/_matrix/client/v3/rooms/{quote(ROOM_ID, safe='')}/joined_members"
-POWER_URL = f"{HOMESERVER}/_matrix/client/v3/rooms/{quote(ROOM_ID, safe='')}/state/m.room.power_levels"
+JOINED_URL = (
+    f"{HOMESERVER}/_matrix/client/v3/rooms/{quote(ROOM_ID, safe='')}/joined_members"
+)
+POWER_URL = (
+    f"{HOMESERVER}/_matrix/client/v3/rooms/{quote(ROOM_ID, safe='')}"
+    "/state/m.room.power_levels"
+)
 
 
 def _register_homeserver():
     responses.add(responses.GET, ALIAS_URL, status=200, json={"room_id": ROOM_ID})
     responses.add(
-        responses.GET, JOINED_URL, status=200,
+        responses.GET,
+        JOINED_URL,
+        status=200,
         json={"joined": {"@alice:keinstein0.ch": {"display_name": "alice"}}},
     )
     responses.add(
-        responses.GET, POWER_URL, status=200,
+        responses.GET,
+        POWER_URL,
+        status=200,
         json={"users_default": 0, "users": {"@alice:keinstein0.ch": 50}},
     )
 

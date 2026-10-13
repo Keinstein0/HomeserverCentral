@@ -2,29 +2,39 @@
 
 from urllib.parse import quote
 
-import pytest
 import responses
 
 import app
 from conftest import make_session_cookie
 
-
 HOMESERVER = "http://tuwunel:8008"
-ALIAS_URL = f"{HOMESERVER}/_matrix/client/v3/directory/room/{quote('#status-viewers:keinstein0.ch', safe='')}"
+ALIAS_URL = (
+    f"{HOMESERVER}/_matrix/client/v3/directory/room/"
+    f"{quote('#status-viewers:keinstein0.ch', safe='')}"
+)
 ROOM_ID = "!statusroom:keinstein0.ch"
-JOINED_URL = f"{HOMESERVER}/_matrix/client/v3/rooms/{quote(ROOM_ID, safe='')}/joined_members"
-POWER_URL = f"{HOMESERVER}/_matrix/client/v3/rooms/{quote(ROOM_ID, safe='')}/state/m.room.power_levels"
+JOINED_URL = (
+    f"{HOMESERVER}/_matrix/client/v3/rooms/{quote(ROOM_ID, safe='')}/joined_members"
+)
+POWER_URL = (
+    f"{HOMESERVER}/_matrix/client/v3/rooms/{quote(ROOM_ID, safe='')}"
+    "/state/m.room.power_levels"
+)
 
 
 def _member_responses():
     """Register the standard happy-path homeserver responses for a member."""
     responses.add(responses.GET, ALIAS_URL, status=200, json={"room_id": ROOM_ID})
     responses.add(
-        responses.GET, JOINED_URL, status=200,
+        responses.GET,
+        JOINED_URL,
+        status=200,
         json={"joined": {"@alice:keinstein0.ch": {"display_name": "alice"}}},
     )
     responses.add(
-        responses.GET, POWER_URL, status=200,
+        responses.GET,
+        POWER_URL,
+        status=200,
         json={"users_default": 0, "users": {"@alice:keinstein0.ch": 50}},
     )
 
@@ -32,6 +42,7 @@ def _member_responses():
 # ---------------------------------------------------------------------------
 # Authentication (cookie) failures
 # ---------------------------------------------------------------------------
+
 
 def test_verify_no_cookie_401(client):
     assert client.get("/verify?room=status-viewers").status_code == 401
@@ -59,6 +70,7 @@ def test_verify_unknown_session_401(client):
 # Logged-in, no room argument
 # ---------------------------------------------------------------------------
 
+
 def test_verify_no_room_arg_200_when_logged_in(client):
     cookie, _ = make_session_cookie(client)
     resp = client.get("/verify")
@@ -71,6 +83,7 @@ def test_verify_no_room_arg_200_when_logged_in(client):
 # ---------------------------------------------------------------------------
 # Room membership checks (homeserver mocked)
 # ---------------------------------------------------------------------------
+
 
 @responses.activate
 def test_verify_member_200_with_headers(client):
@@ -86,7 +99,9 @@ def test_verify_member_200_with_headers(client):
 def test_verify_non_member_403(client):
     responses.add(responses.GET, ALIAS_URL, status=200, json={"room_id": ROOM_ID})
     responses.add(
-        responses.GET, JOINED_URL, status=200,
+        responses.GET,
+        JOINED_URL,
+        status=200,
         json={"joined": {"@someoneelse:keinstein0.ch": {"display_name": "x"}}},
     )
     cookie, _ = make_session_cookie(client, user_id="@bob:keinstein0.ch")
@@ -105,7 +120,9 @@ def test_verify_room_alias_resolution_failure_403(client):
 @responses.activate
 def test_verify_bot_not_joined_403(client):
     responses.add(responses.GET, ALIAS_URL, status=200, json={"room_id": ROOM_ID})
-    responses.add(responses.GET, JOINED_URL, status=403, json={"errcode": "M_FORBIDDEN"})
+    responses.add(
+        responses.GET, JOINED_URL, status=403, json={"errcode": "M_FORBIDDEN"}
+    )
     cookie, _ = make_session_cookie(client)
     resp = client.get("/verify?room=status-viewers")
     assert resp.status_code == 403
@@ -127,12 +144,14 @@ def test_verify_raw_room_id_passthrough(client):
     responses.add(
         responses.GET,
         f"{HOMESERVER}/_matrix/client/v3/rooms/{quote(ROOM_ID, safe='')}/joined_members",
-        status=200, json={"joined": {"@alice:keinstein0.ch": {}}},
+        status=200,
+        json={"joined": {"@alice:keinstein0.ch": {}}},
     )
     responses.add(
         responses.GET,
-        f"{HOMESERVER}/_matrix/client/v3/rooms/{quote(ROOM_ID, safe='')}/state/m.room.power_levels",
-        status=200, json={"users_default": 0, "users": {"@alice:keinstein0.ch": 0}},
+        POWER_URL,
+        status=200,
+        json={"users_default": 0, "users": {"@alice:keinstein0.ch": 0}},
     )
     cookie, _ = make_session_cookie(client)
     resp = client.get(f"/verify?room={quote(ROOM_ID, safe='')}")
@@ -145,4 +164,3 @@ def test_verify_malformed_bare_room_without_server_name_403(client, monkeypatch)
     cookie, _ = make_session_cookie(client)
     resp = client.get("/verify?room=just-a-name")
     assert resp.status_code == 403
-

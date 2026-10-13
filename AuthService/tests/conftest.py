@@ -20,9 +20,9 @@ os.environ.setdefault("MATRIX_SERVER_NAME", "keinstein0.ch")
 os.environ.setdefault("MEMBERSHIP_CACHE_TTL", "60")
 os.environ.setdefault("SESSION_MAX_AGE", "604800")
 
-import pytest
+import pytest  # noqa: E402
 
-import app
+import app  # noqa: E402
 
 
 @pytest.fixture
@@ -45,7 +45,9 @@ def reset_state():
     app.ALIAS_CACHE.clear()
 
 
-def make_session_cookie(client, user_id="@alice:keinstein0.ch", access_token="mock_token"):
+def make_session_cookie(
+    client, user_id="@alice:keinstein0.ch", access_token="mock_token"
+):
     """Inject a server-side session, set a valid signed cookie on the Flask
     test client's cookie jar, and return (cookie_value, session_id).
 

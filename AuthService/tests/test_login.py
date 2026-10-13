@@ -2,22 +2,24 @@
 
 from urllib.parse import quote
 
-import pytest
 import responses
 
 import app
 
-
 # ---------------------------------------------------------------------------
 # normalize_user_id
 # ---------------------------------------------------------------------------
+
 
 def test_normalize_user_id_bare_name_expands():
     assert app.normalize_user_id("alice") == "@alice:keinstein0.ch"
 
 
 def test_normalize_user_id_full_id_passthrough():
-    assert app.normalize_user_id("@alice:matrix.example.com") == "@alice:matrix.example.com"
+    assert (
+        app.normalize_user_id("@alice:matrix.example.com")
+        == "@alice:matrix.example.com"
+    )
 
 
 def test_normalize_user_id_no_server_name_passthrough(monkeypatch):
@@ -101,7 +103,12 @@ def test_login_invalid_credentials_redirects_to_error(client):
 def test_login_missing_fields_redirects_to_error(client):
     resp = client.post(
         "/login",
-        data={"username": "", "password": "", "redirect": "/dashboard", "room": "status-viewers"},
+        data={
+            "username": "",
+            "password": "",
+            "redirect": "/dashboard",
+            "room": "status-viewers",
+        },
     )
     assert resp.status_code == 302
     location = resp.headers["Location"]
@@ -142,7 +149,9 @@ def test_login_homeserver_network_error_redirects_to_error(client, monkeypatch):
 @responses.activate
 def test_login_default_redirect_when_none_given(client):
     responses.add(
-        responses.POST, LOGIN_URL, status=200,
+        responses.POST,
+        LOGIN_URL,
+        status=200,
         json={"user_id": "@alice:keinstein0.ch", "access_token": "tok"},
     )
     resp = client.post("/login", data={"username": "alice", "password": "password"})

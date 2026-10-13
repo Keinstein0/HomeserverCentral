@@ -54,7 +54,9 @@ app = Flask(__name__)
 
 HOMESERVER_URL = os.environ.get("HOMESERVER_URL", "http://tuwunel:8008").rstrip("/")
 BOT_ACCESS_TOKEN = os.environ["BOT_ACCESS_TOKEN"]  # required - fail fast if missing
-DEFAULT_SERVER_NAME = os.environ.get("MATRIX_SERVER_NAME")  # used to expand bare room/user names
+DEFAULT_SERVER_NAME = os.environ.get(
+    "MATRIX_SERVER_NAME"
+)  # used to expand bare room/user names
 
 SECRET_KEY = os.environ["GATEWAY_SECRET_KEY"]  # required - fail fast if missing
 SESSION_MAX_AGE = int(os.environ.get("SESSION_MAX_AGE", 60 * 60 * 24 * 7))  # 7 days
@@ -71,6 +73,7 @@ MEMBERSHIP_CACHE: dict[tuple[str, str], tuple[float, bool, int]] = {}
 # alias/name -> resolved room id (!...). Aliases essentially never change,
 # so this is cached indefinitely rather than on the short membership TTL.
 ALIAS_CACHE: dict[str, str] = {}
+
 
 def normalize_user_id(username: str) -> str:
     if username.startswith("@"):
@@ -99,7 +102,9 @@ def matrix_login(user_id: str, password: str) -> tuple[str, str] | None:
         log.exception("Homeserver login request failed")
         return None
     if resp.status_code != 200:
-        log.info("Login failed for %s: %s %s", user_id, resp.status_code, resp.text[:200])
+        log.info(
+            "Login failed for %s: %s %s", user_id, resp.status_code, resp.text[:200]
+        )
         return None
     data = resp.json()
     return data.get("access_token"), data.get("user_id", user_id)
@@ -127,7 +132,8 @@ def resolve_room_id(room_param: str) -> str | None:
         if not DEFAULT_SERVER_NAME:
             log.warning(
                 "Bare room name '%s' given but MATRIX_SERVER_NAME isn't set - "
-                "can't expand it to a full alias", room_param,
+                "can't expand it to a full alias",
+                room_param,
             )
             return None
         alias = f"#{room_param}:{DEFAULT_SERVER_NAME}"
@@ -147,7 +153,10 @@ def resolve_room_id(room_param: str) -> str | None:
     if resp.status_code != 200:
         log.warning(
             "Could not resolve alias %s (does the room have this alias published "
-            "in its settings?): %s %s", alias, resp.status_code, resp.text[:200],
+            "in its settings?): %s %s",
+            alias,
+            resp.status_code,
+            resp.text[:200],
         )
         return None
 
@@ -172,7 +181,10 @@ def get_room_power_levels(room_id: str) -> dict:
         return {}
     if resp.status_code != 200:
         log.warning(
-            "power_levels lookup failed for %s: %s %s", room_id, resp.status_code, resp.text[:300]
+            "power_levels lookup failed for %s: %s %s",
+            room_id,
+            resp.status_code,
+            resp.text[:300],
         )
         return {}
     return resp.json()
@@ -207,7 +219,9 @@ def bot_check_room_membership(room_param: str, user_id: str) -> tuple[bool, int]
         # Most common cause: the bot itself isn't a member of this room yet.
         log.warning(
             "joined_members lookup failed for %s (bot may not be joined to this room): %s %s",
-            room_id, resp.status_code, resp.text[:300],
+            room_id,
+            resp.status_code,
+            resp.text[:300],
         )
         return False, 0
     joined = resp.json().get("joined", {})
@@ -232,9 +246,12 @@ def login_post():
         # No HTML here - just bounce back to the static /login.html with
         # enough in the query string for its own JS to re-show the form,
         # prefilled, with an error message.
-        qs = f"error={error_code}&redirect={quote(redirect_to, safe='')}&room={quote(room, safe='')}"
+        qs = (
+            f"error={error_code}"
+            f"&redirect={quote(redirect_to, safe='')}"
+            f"&room={quote(room, safe='')}"
+        )
         return redirect(f"/login.html?{qs}")
-
 
     if not username or not password:
         return back_to_login_with_error("missing_fields", 400)

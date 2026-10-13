@@ -1,0 +1,151 @@
+name: CI
+
+on:
+  push:
+    branches: [main, testing]
+  pull_request:
+    branches: [main, testing]
+
+jobs:
+  # ===========================================================================
+  # Step 1: Lint & Static Analysis
+  # ===========================================================================
+  # Runs linters for all three components in parallel within a single job.
+  # golangci-lint (Status API), flake8 + black (Auth Service),
+  # svelte-check (Homepage). eslint is deferred until an eslint config
+  # exists in the project.
+  lint:
+    name: Lint & Static Analysis
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      # --- Status API (Go) ---
+      - name: golangci-lint (Status API)
+        uses: golangci/golangci-lint-action@v6
+        with:
+          working-directory: StatusAPI
+          version: v2.0.2
+
+      # --- Auth Service (Python) ---
+      - name: Install Python linters
+        working-directory: AuthService
+        run: pip install flake8 black
+
+      - name: flake8 (Auth Service)
+        working-directory: AuthService
+        run: flake8 app.py tests/
+
+      - name: black --check (Auth Service)
+        working-directory: AuthService
+        run: black --check app.py tests/
+
+      # --- Homepage (SvelteKit) ---
+      - name: Install Homepage deps
+        working-directory: Homepage
+        run: npm ci
+
+      - name: svelte-check (Homepage)
+        working-directory: Homepage
+        run: npm run check
+
+  # ===========================================================================
+  # Step 2: Unit Tests
+  # ===========================================================================
+  # Runs the isolated unit test suites for all three components.
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      # --- Status API (Go) ---
+      - name: Go unit tests
+        working-directory: StatusAPI
+        run: go test -v -race ./...
+
+      # --- Auth Service (Python) ---
+      - name: Install Auth Service dev deps
+        working-directory: AuthService
+        run: pip install -r requirements-dev.txt
+
+      - name: Python unit tests
+        working-directory: AuthService
+        run: pytest -v tests/
+
+      # --- Homepage (SvelteKit) ---
+      - name: Install Homepage deps
+        working-directory: Homepage
+        run: npm ci
+
+      - name: Homepage build
+        working-directory: Homepage
+        run: npm run build
+
+      - name: Homepage unit tests
+        working-directory: Homepage
+        run: npm run test
+
+  # ===========================================================================
+  # Step 3 & 4: Integration Tests + Teardown
+  # ===========================================================================
+  # Spins up the full containerized stack, runs the end-to-end scenarios,
+  # then tears down. Depends on both lint and unit-tests passing first.
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    needs: [lint, unit-tests]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install integration test deps
+        working-directory: tests/integration
+        run: pip install -r requirements.txt
+
+      # Step 3: Build & spin up the test container stack, then run the
+      # integration suite. The conftest.py session fixture handles the
+      # full lifecycle (up -> wait for health -> yield -> down).
+      - name: Run integration tests
+        working-directory: tests/integration
+        run: pytest -v
+
+      # Step 4: Teardown — safety net in case the fixture's teardown was
+      # skipped (e.g. pytest crashed mid-run). Always runs, even on failure.
+      - name: Teardown containers
+        if: always()
+        run: docker compose --profile test --env-file .env.test down -v

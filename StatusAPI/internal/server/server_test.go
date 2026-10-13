@@ -41,7 +41,7 @@ func TestServer_Healthz(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("expected 200, got %d", resp.StatusCode)
 	}
@@ -53,7 +53,7 @@ func TestServer_ListServices(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	var meta []registry.ServiceMeta
 	if err := json.NewDecoder(resp.Body).Decode(&meta); err != nil {
@@ -70,7 +70,7 @@ func TestServer_ServiceStatus_NotFound(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != http.StatusNotFound {
 		t.Fatalf("expected 404, got %d", resp.StatusCode)
 	}
@@ -82,7 +82,7 @@ func TestServer_ServiceStatus_OK(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	var res checker.CheckResult
 	if err := json.NewDecoder(resp.Body).Decode(&res); err != nil {
@@ -99,7 +99,7 @@ func TestServer_AggregatedStatus(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	var agg aggregatedStatus
 	if err := json.NewDecoder(resp.Body).Decode(&agg); err != nil {
@@ -126,7 +126,7 @@ func TestServer_AggregatedStatus_Concurrent(t *testing.T) {
 				t.Error(err)
 				return
 			}
-			resp.Body.Close()
+			_ = resp.Body.Close()
 		}()
 	}
 	wg.Wait()
