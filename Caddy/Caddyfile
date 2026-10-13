@@ -27,13 +27,12 @@
 		}
 
 		# Logged in, but not a member of the required room -> static
-		# "access denied" page, no redirect loop.
+		# "access denied" page, no redirect loop. Use `error * 403` so the
+		# site-level handle_errors block serves /403.html AND preserves the
+		# 403 status code (a bare file_server would return 200).
 		@forbidden status 403
 		handle_response @forbidden {
-			rewrite * /403.html
-			file_server {
-				root /apps/homepage
-			}
+			error * 403
 		}
 	}
 }
@@ -94,12 +93,19 @@ www.keinstein0.ch, http://localhost {
 	root * /apps/homepage
 
 	# Matrix Client Discovery
-	header /_matrix/client/.well-known/matrix/client Access-Control-Allow-Origin "*"
-	respond /_matrix/client/.well-known/matrix/client `{"m.homeserver": {"base_url": "https://matrix.keinstein0.ch"}}` 200
+	# Wrapped in handle blocks so they take priority over the catch-all
+	# handle { file_server } below (Caddy sorts `handle` before `respond`,
+	# so a bare `respond` would be shadowed by the catch-all).
+	handle /_matrix/client/.well-known/matrix/client {
+		header Access-Control-Allow-Origin "*"
+		respond `{"m.homeserver": {"base_url": "https://matrix.keinstein0.ch"}}` 200
+	}
 
 	# Matrix Server-to-Server Discovery (Federation)
-	header /_matrix/server/.well-known/matrix/server Access-Control-Allow-Origin "*"
-	respond /_matrix/server/.well-known/matrix/server `{"m.server": "matrix.keinstein0.ch:443"}` 200
+	handle /_matrix/server/.well-known/matrix/server {
+		header Access-Control-Allow-Origin "*"
+		respond `{"m.server": "matrix.keinstein0.ch:443"}` 200
+	}
 
 	# Public: the auth API itself. Exact paths only - does not match
 	# /login.html, which is a static file handled further down.

@@ -116,6 +116,32 @@ services:
       matrix-auth-gateway:
         condition: service_healthy
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/_matrix/client/.well-known/matrix/client"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 10s
+
+  # ============================================================
+  # Homepage Build - one-shot static build for test profile
+  # ============================================================
+  # Under the test profile the dev homepage service (above) is absent, so
+  # the shared static_build volume would stay empty and Caddy could not
+  # serve /login.html or /index.html. This one-shot service builds the
+  # SvelteKit static output and copies it to the shared volume, then exits.
+  # Caddy's test health-wait (polling /login.html -> 200) naturally blocks
+  # until this completes.
+  homepage-build:
+    build:
+      context: Homepage
+      dockerfile: Dockerfile.dev
+    container_name: homepage-build
+    volumes:
+      - static_build:/build_output
+    profiles:
+      - test
+    command: sh -c "npx vite build && rm -rf /build_output/* && cp -r build/* /build_output/"
 
   # ============================================================
   # Tuwunel Mock - Matrix Homeserver mock (test/dev only)
@@ -125,10 +151,14 @@ services:
   # custom DNS. Ignored by `docker compose up` (no default profile);
   # started by `docker compose --profile test up`. The network alias
   # `tuwunel` makes HOMESERVER_URL=http://tuwunel:8008 resolve to it.
+  # Port 8008 is published so the host test runner can reach /__admin/*
+  # control endpoints (failure simulation, request counting).
   tuwunel-mock:
     build:
       context: ./tests/mock-tuwunel
     container_name: tuwunel-mock
+    ports:
+      - "8008:8008"
     networks:
       homeserver_internal:
         aliases:

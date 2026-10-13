@@ -87,6 +87,28 @@ ROOMS = {
 }
 
 # --------------------------------------------------------------------------
+# Test-only admin controls (not part of the Matrix API)
+# --------------------------------------------------------------------------
+# These let integration tests simulate downstream failure (INT-STA-04) and
+# verify cache burst protection / request counting (INT-STA-05). They are
+# reached via /__admin/* on the mock's published port (8008).
+
+import threading
+
+# When True, /_matrix/client/versions returns 500 (simulates a down
+# homeserver) for INT-STA-04.
+FAILURE_MODE = False
+# Counts how many times each endpoint family was hit, for INT-STA-05.
+REQUEST_COUNTS = {
+    "versions": 0,
+    "login": 0,
+    "directory": 0,
+    "joined_members": 0,
+    "power_levels": 0,
+}
+_state_lock = threading.Lock()
+
+# --------------------------------------------------------------------------
 # Response helpers
 # --------------------------------------------------------------------------
 
@@ -132,8 +154,24 @@ class MockHandler(BaseHTTPRequestHandler):
         path = unquote(urlparse(self.path).path)
         log.info("GET %s", path)
 
+        # --- Admin: stats / reset_stats (GET) ---------------------------
+        if path == "/__admin/stats":
+            with _state_lock:
+                send_json(self, 200, dict(REQUEST_COUNTS))
+            return
+        if path == "/__admin/fail_mode":
+            with _state_lock:
+                send_json(self, 200, {"failure_mode": FAILURE_MODE})
+            return
+
         # --- Status API: MatrixHomeserverChecker -----------------------
         if path == "/_matrix/client/versions":
+            with _state_lock:
+                REQUEST_COUNTS["versions"] += 1
+                fail = FAILURE_MODE
+            if fail:
+                send_error_json(self, 500, "M_UNKNOWN", "Simulated downstream failure")
+                return
             send_json(self, 200, {"versions": ["v1.0", "v1.1"]})
             return
 
@@ -145,6 +183,8 @@ class MockHandler(BaseHTTPRequestHandler):
         # --- Room alias resolution (AuthService.resolve_room_id) -------
         prefix = "/_matrix/client/v3/directory/room/"
         if path.startswith(prefix):
+            with _state_lock:
+                REQUEST_COUNTS["directory"] += 1
             alias = path[len(prefix):]
             room_id = ROOM_ALIASES.get(alias)
             if room_id:
@@ -158,6 +198,8 @@ class MockHandler(BaseHTTPRequestHandler):
         if path.startswith(prefix):
             rest = path[len(prefix):]
             if rest.endswith("/joined_members"):
+                with _state_lock:
+                    REQUEST_COUNTS["joined_members"] += 1
                 room_id = rest[: -len("/joined_members")]
                 room = ROOMS.get(room_id)
                 if room is not None:
@@ -166,6 +208,8 @@ class MockHandler(BaseHTTPRequestHandler):
                     send_error_json(self, 404, "M_NOT_FOUND", "Unknown room")
                 return
             if rest.endswith("/state/m.room.power_levels"):
+                with _state_lock:
+                    REQUEST_COUNTS["power_levels"] += 1
                 room_id = rest[: -len("/state/m.room.power_levels")]
                 room = ROOMS.get(room_id)
                 if room is not None:
@@ -182,8 +226,30 @@ class MockHandler(BaseHTTPRequestHandler):
         path = unquote(urlparse(self.path).path)
         log.info("POST %s", path)
 
+        global FAILURE_MODE
+
+        # --- Admin: fail / recover / reset_stats (POST) -----------------
+        if path == "/__admin/fail":
+            with _state_lock:
+                FAILURE_MODE = True
+            send_json(self, 200, {"failure_mode": True})
+            return
+        if path == "/__admin/recover":
+            with _state_lock:
+                FAILURE_MODE = False
+            send_json(self, 200, {"failure_mode": False})
+            return
+        if path == "/__admin/reset_stats":
+            with _state_lock:
+                for k in REQUEST_COUNTS:
+                    REQUEST_COUNTS[k] = 0
+            send_json(self, 200, {"reset": True})
+            return
+
         # --- Login (AuthService.matrix_login) --------------------------
         if path == "/_matrix/client/v3/login":
+            with _state_lock:
+                REQUEST_COUNTS["login"] += 1
             body = self._read_body()
             identifier = body.get("identifier", {}) or {}
             user = identifier.get("user", "")
