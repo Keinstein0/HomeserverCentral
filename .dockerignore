@@ -1,0 +1,37 @@
+# Build artifacts
+**/*.exe
+**/*.dll
+**/*.so
+**/*.dylib
+**/*.test
+**/*.out
+
+# VCS
+.git
+.gitignore
+.gitattributes
+
+# Editor / OS
+.vscode
+.idea
+.DS_Store
+
+# Node (Homepage) - keeps the build context small
+Homepage/node_modules
+Homepage/.svelte-kit
+Homepage/build
+Homepage/.env
+
+# Python (AuthService)
+AuthService/__pycache__
+AuthService/*.pyc
+
+# Env files
+.env
+.env.*
+!.env.example
+
+# Docs that don't affect the Status API build
+README.md
+**/designfile.md
+**/whatisthis.md
