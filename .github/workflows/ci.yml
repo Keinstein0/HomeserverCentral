@@ -37,7 +37,7 @@ jobs:
 
       # --- Status API (Go) ---
       - name: golangci-lint (Status API)
-        uses: golangci/golangci-lint-action@v6
+        uses: golangci/golangci-lint-action@v7
         with:
           working-directory: StatusAPI
           version: v2.0.2
