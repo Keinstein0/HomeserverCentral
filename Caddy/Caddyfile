@@ -41,9 +41,30 @@
 # Matrix Subdomain
 # -------------------------------------------------------------
 matrix.keinstein0.ch {
-	# Matrix API routes
-	reverse_proxy tuwunel:8008
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+        X-Content-Type-Options "nosniff"
+        -Server
+    }
+
+    # Matrix Client Discovery
+    header /.well-known/matrix/client Access-Control-Allow-Origin "*"
+    respond /.well-known/matrix/client `{"m.homeserver": {"base_url": "https://matrix.keinstein0.ch"}}` 200
+
+    # Matrix Server-to-Server Discovery (Tells remote servers to talk to us on port 443 via Caddy)
+    header /.well-known/matrix/server Access-Control-Allow-Origin "*"
+    respond /.well-known/matrix/server `{"m.server": "matrix.keinstein0.ch:443"}` 200
+
+    # Blanket reverse proxy to Tuwunel for all client and federation requests
+    reverse_proxy tuwunel:8008 {
+        # Transport options to support long-polling and Matrix sync streams
+        transport http {
+            dial_timeout 5s
+        }
+    }
 }
+
+
 
 # -------------------------------------------------------------
 # Status Subdomain
@@ -91,21 +112,6 @@ www.keinstein0.ch, http://localhost {
 	}
 
 	root * /apps/homepage
-
-	# Matrix Client Discovery
-	# Wrapped in handle blocks so they take priority over the catch-all
-	# handle { file_server } below (Caddy sorts `handle` before `respond`,
-	# so a bare `respond` would be shadowed by the catch-all).
-	handle /_matrix/client/.well-known/matrix/client {
-		header Access-Control-Allow-Origin "*"
-		respond `{"m.homeserver": {"base_url": "https://matrix.keinstein0.ch"}}` 200
-	}
-
-	# Matrix Server-to-Server Discovery (Federation)
-	handle /_matrix/server/.well-known/matrix/server {
-		header Access-Control-Allow-Origin "*"
-		respond `{"m.server": "matrix.keinstein0.ch:443"}` 200
-	}
 
 	# Public: the auth API itself. Exact paths only - does not match
 	# /login.html, which is a static file handled further down.
