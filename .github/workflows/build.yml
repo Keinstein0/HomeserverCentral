@@ -1,0 +1,114 @@
+name: Build & Publish Images
+
+# Phase 1 of CONTINUOUS_DEPLOYMENT.md: GHCR publishing pipeline.
+#
+# Runs ONLY after the full CI workflow (lint + unit + integration tests)
+# succeeds on a push to main. Builds the three deployable images and pushes
+# them to GitHub Container Registry:
+#   - ghcr.io/keinstein0/homepage             (Homepage/Dockerfile.prod)
+#   - ghcr.io/keinstein0/status-api           (StatusAPI/Dockerfile)
+#   - ghcr.io/keinstein0/matrix-auth-gateway  (AuthService/Dockerfile)
+#
+# Images are private for now; the homeserver pulls them with a
+# read-scoped PAT (docker compose pull) in Phase 2's deploy script.
+# Both :latest and the commit SHA are published (SHA tags enable pinning
+# and easy rollback).
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  REGISTRY: ghcr.io
+
+jobs:
+  build-publish:
+    name: Build & Push GHCR Images
+    runs-on: ubuntu-latest
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_branch == 'main'
+    steps:
+      # Check out the exact commit the passing CI run was built from, so the
+      # published images always correspond to the tested revision.
+      - name: Checkout passing commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Image names must be lowercase for GHCR.
+      - name: Lowercase image names
+        id: names
+        run: |
+          echo "owner=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_OUTPUT"
+          echo "sha_tag=$(echo '${{ github.event.workflow_run.head_sha }}' | cut -c1-12)" >> "$GITHUB_OUTPUT"
+
+      # -------------------------------------------------------------------
+      # Homepage (multi-stage: SvelteKit static build -> nginx)
+      # -------------------------------------------------------------------
+      - name: Build & push homepage
+        uses: docker/build-push-action@v6
+        with:
+          context: ./Homepage
+          file: ./Homepage/Dockerfile.prod
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ steps.names.outputs.owner }}/homepage:latest
+            ${{ env.REGISTRY }}/${{ steps.names.outputs.owner }}/homepage:${{ steps.names.outputs.sha_tag }}
+          cache-from: type=gha,scope=homepage
+          cache-to: type=gha,scope=homepage,mode=max
+
+      # -------------------------------------------------------------------
+      # Status API (Go; repo-root context, Dockerfile copies StatusAPI/)
+      # -------------------------------------------------------------------
+      - name: Build & push status-api
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./StatusAPI/Dockerfile
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ steps.names.outputs.owner }}/status-api:latest
+            ${{ env.REGISTRY }}/${{ steps.names.outputs.owner }}/status-api:${{ steps.names.outputs.sha_tag }}
+          cache-from: type=gha,scope=status-api
+          cache-to: type=gha,scope=status-api,mode=max
+
+      # -------------------------------------------------------------------
+      # Matrix Auth Gateway (Flask)
+      # -------------------------------------------------------------------
+      - name: Build & push matrix-auth-gateway
+        uses: docker/build-push-action@v6
+        with:
+          context: ./AuthService
+          file: ./AuthService/Dockerfile
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ steps.names.outputs.owner }}/matrix-auth-gateway:latest
+            ${{ env.REGISTRY }}/${{ steps.names.outputs.owner }}/matrix-auth-gateway:${{ steps.names.outputs.sha_tag }}
+          cache-from: type=gha,scope=auth-gateway
+          cache-to: type=gha,scope=auth-gateway,mode=max
+
+      - name: Summary
+        run: |
+          echo "### Published images (commit ${{ github.event.workflow_run.head_sha }})" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          echo "${{ env.REGISTRY }}/${{ steps.names.outputs.owner }}/homepage:latest" >> "$GITHUB_STEP_SUMMARY"
+          echo "${{ env.REGISTRY }}/${{ steps.names.outputs.owner }}/status-api:latest" >> "$GITHUB_STEP_SUMMARY"
+          echo "${{ env.REGISTRY }}/${{ steps.names.outputs.owner }}/matrix-auth-gateway:latest" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"

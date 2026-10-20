@@ -106,9 +106,9 @@ Because SSH and VPN tunnels are prohibited by network policy, the deployment tri
 ## 5. Roadmap & Tasks to Complete
 
 ### Phase 1: Container & Build Preparations
-- [ ] **Frontend Production Dockerfile**: Create a minimal production Dockerfile for `Homepage` (e.g. `nginx:alpine` or minimal Caddy) that serves static files built from SvelteKit.
-- [ ] **GHCR Publishing Pipeline**: Extend GitHub Actions to build and push container images (`homepage`, `status-api`, `matrix-auth-gateway`) to GitHub Container Registry on pushes to `main`.
-- [ ] **Production Compose Definition**: Create or update the compose setup with image references pointing to GHCR rather than local dev build contexts.
+- [x] **Frontend Production Dockerfile**: Create a minimal production Dockerfile for `Homepage` (e.g. `nginx:alpine` or minimal Caddy) that serves static files built from SvelteKit.
+- [x] **GHCR Publishing Pipeline**: Extend GitHub Actions to build and push container images (`homepage`, `status-api`, `matrix-auth-gateway`) to GitHub Container Registry on pushes to `main`.
+- [x] **Production Compose Definition**: Create the compose setup (docker-compose.prod.yml) with image references pointing to GHCR rather than local dev build contexts.
 
 ### Phase 2: Webhook Runner & Host Hardening
 - [ ] **Webhook Receiver Setup**: Install and configure a lightweight webhook daemon on the homeserver (e.g. `adnanh/webhook` or a small daemon) running under an unprivileged user with Docker permissions.

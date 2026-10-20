@@ -1,0 +1,133 @@
+# =============================================================================
+# Production Compose Definition (Homeserver)
+# =============================================================================
+# Phase 1 of CONTINUOUS_DEPLOYMENT.md. Unlike docker-compose.yml (dev/test),
+# this file pulls pre-built images from GitHub Container Registry instead of
+# building from source, keeping homeserver CPU/RAM usage minimal. Images are
+# published by .github/workflows/build.yml after the full CI pipeline passes.
+#
+# Lifecycle (Phase 2 deploy script):
+#   docker compose -f docker-compose.prod.yml pull
+#   docker compose -f docker-compose.prod.yml up -d
+#
+# Prerequisites on the host:
+#   1. GHCR login for the PRIVATE images (read-scoped PAT with read:packages):
+#        echo "$GHCR_TOKEN" | docker login ghcr.io -u <user> --password-stdin
+#   2. The tuwunel Matrix homeserver (its own compose project) attaches to
+#      this network so Caddy's reverse_proxy tuwunel:8008 resolves:
+#        docker network connect homeserver_internal <tuwunel-container>
+#   3. A .env next to this file supplying the secrets referenced below
+#      (see .env.example).
+#
+# Secrets / environment (via .env):
+#   BOT_ACCESS_TOKEN   Matrix bot token for the auth gateway
+#   GATEWAY_SECRET_KEY Random long string signing session cookies
+#   HOMESERVER_URL     Defaults to http://tuwunel:8008
+#   CACHE_TTL_SECONDS  Status API cache window (default 10)
+# =============================================================================
+
+services:
+  # ============================================================
+  # Caddy - Reverse Proxy (always-on front door)
+  # ============================================================
+  # Site labels default to the bare prod hostnames (TLS on :443) because
+  # the *_SITE / AUTO_HTTPS env vars are intentionally NOT set here.
+  caddy:
+    image: caddy:2.11
+    container_name: homeserver_caddy
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"  # HTTP/3
+    volumes:
+      - ./Caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    environment:
+      - CADDY_INGRESS_IP=${CADDY_INGRESS_IP:-}
+    networks:
+      - homeserver_internal
+    depends_on:
+      matrix-auth-gateway:
+        condition: service_healthy
+      homepage:
+        condition: service_healthy
+      status-api:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "-H", "Host: www.keinstein0.ch", "http://localhost:80/login.html"]
+      interval: 30s
+      timeout: 5s
+      retries: 6
+      start_period: 10s
+
+  # ============================================================
+  # Homepage - static frontend (GHCR, nginx serving Svelte build)
+  # ============================================================
+  homepage:
+    image: ghcr.io/keinstein0/homepage:latest
+    container_name: homeserver_homepage
+    networks:
+      - homeserver_internal
+    restart: unless-stopped
+
+  # ============================================================
+  # Matrix Auth Gateway (GHCR)
+  # ============================================================
+  matrix-auth-gateway:
+    image: ghcr.io/keinstein0/matrix-auth-gateway:latest
+    container_name: homeserver_matrix-auth-gateway
+    environment:
+      - HOMESERVER_URL=${HOMESERVER_URL:-http://tuwunel:8008}
+      - BOT_ACCESS_TOKEN=${BOT_ACCESS_TOKEN}
+      - GATEWAY_SECRET_KEY=${GATEWAY_SECRET_KEY}
+      - MATRIX_SERVER_NAME=${MATRIX_SERVER_NAME:-keinstein0.ch}
+      - SESSION_MAX_AGE=604800
+      - MEMBERSHIP_CACHE_TTL=60
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - homeserver_internal
+    restart: unless-stopped
+
+  # ============================================================
+  # Status API (GHCR)
+  # ============================================================
+  status-api:
+    image: ghcr.io/keinstein0/status-api:latest
+    container_name: homeserver_status-api
+    environment:
+      - PORT=5001
+      - CACHE_TTL_SECONDS=${CACHE_TTL_SECONDS:-10}
+      - AUTH_SERVICE_URL=http://matrix-auth-gateway:5000
+      - HOMESERVER_URL=${HOMESERVER_URL:-http://tuwunel:8008}
+      - HOMEPAGE_URL=http://homepage:80
+      - CADDY_URL=http://caddy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5001/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+    networks:
+      - homeserver_internal
+    depends_on:
+      matrix-auth-gateway:
+        condition: service_healthy
+    restart: unless-stopped
+
+networks:
+  # Fixed network name so the tuwunel homeserver container (its own compose
+  # project) can join via `docker network connect homeserver_internal ...`.
+  homeserver_internal:
+    name: homeserver_internal
+    driver: bridge
+
+volumes:
+  caddy_data:
+  caddy_config:

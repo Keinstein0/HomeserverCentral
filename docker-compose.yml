@@ -45,7 +45,7 @@ services:
       - CACHE_TTL_SECONDS=${CACHE_TTL_SECONDS:-10}
       - AUTH_SERVICE_URL=http://matrix-auth-gateway:5000
       - HOMESERVER_URL=${HOMESERVER_URL:-http://tuwunel:8008}
-      - HOMEPAGE_URL=http://homepage:5173
+      - HOMEPAGE_URL=http://homepage:80
       - CADDY_URL=http://caddy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5001/healthz"]
@@ -61,14 +61,31 @@ services:
     restart: unless-stopped
 
   # ============================================================
-  # Homepage - Svelte/Vite Application
+  # Homepage - static frontend container (nginx, micro-frontend)
   # ============================================================
-  # Main web application with live previews via Vite
+  # Serves the compiled SvelteKit static bundle via nginx (see
+  # Homepage/Dockerfile.prod + nginx.conf). Caddy proxies all static
+  # content here instead of reading files from a shared volume, so this
+  # container can be redeployed independently of the main proxy.
   homepage:
     build:
       context: Homepage
-      dockerfile: Dockerfile.dev
+      dockerfile: Dockerfile.prod
     container_name: ${COMPOSE_PROJECT_NAME:-homeserver}_homepage
+    networks:
+      - homeserver_internal
+    restart: unless-stopped
+
+  # ============================================================
+  # Homepage Dev - Svelte/Vite live-reload server (dev profile)
+  # ============================================================
+  # Optional live-preview companion for development; the static `homepage`
+  # container above is what Caddy actually serves.
+  homepage-dev:
+    build:
+      context: Homepage
+      dockerfile: Dockerfile.dev
+    container_name: ${COMPOSE_PROJECT_NAME:-homeserver}_homepage-dev
     ports:
       - "5173:5173"  # Vite dev server
       - "4173:4173"  # Vite preview (production-like)
@@ -79,12 +96,11 @@ services:
     volumes:
       - ./Homepage:/app:rw
       - homepage_node_modules:/app/node_modules
-      - static_build:/build_output
     networks:
       - homeserver_internal
     profiles:
       - dev
-    #command: npm run dev -- --host 0.0.0.0
+    command: npm run dev -- --host 0.0.0.0
 
   # ============================================================
   # Caddy - Reverse Proxy & Auth Handler
@@ -99,7 +115,6 @@ services:
       - "443:443/udp"  # For HTTP/3
     volumes:
       - ./Caddy/Caddyfile:/etc/caddy/Caddyfile:ro
-      - static_build:/apps/homepage:ro
       - caddy_data:/data
       - caddy_config:/config
     environment:
@@ -131,7 +146,7 @@ services:
     restart: unless-stopped
     healthcheck:
       # The www vhost (reachable as "localhost" on :80 in this stack) must be
-      # able to serve the static login page from the homepage-build one-shot.
+      # able to serve the login page via the homepage container's nginx.
       test: ["CMD", "curl", "-f", "http://localhost:80/login.html"]
       interval: 10s
       timeout: 5s
@@ -167,26 +182,6 @@ services:
       - test
 
   # ============================================================
-  # Homepage Build - one-shot static build for test profile
-  # ============================================================
-  # Under the test profile the dev homepage service (above) is absent, so
-  # the shared static_build volume would stay empty and Caddy could not
-  # serve /login.html or /index.html. This one-shot service builds the
-  # SvelteKit static output and copies it to the shared volume, then exits.
-  # Caddy's test health-wait (polling /login.html -> 200) naturally blocks
-  # until this completes.
-  homepage-build:
-    build:
-      context: Homepage
-      dockerfile: Dockerfile.dev
-    container_name: homepage-build
-    volumes:
-      - static_build:/build_output
-    profiles:
-      - test
-    command: sh -c "npx vite build && rm -rf /build_output/* && cp -r build/* /build_output/"
-
-  # ============================================================
   # Tuwunel Mock - Matrix Homeserver mock (test/dev only)
   # ============================================================
   # Lightweight stand-in for the real Matrix homeserver so unit and
@@ -215,6 +210,5 @@ networks:
 
 volumes:
   homepage_node_modules:
-  static_build:
   caddy_data:
   caddy_config:
