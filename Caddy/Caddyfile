@@ -1,40 +1,72 @@
 {
-    # Controls automatic HTTPS globally via the AUTO_HTTPS env var.
-    #   - Testing/dev: set AUTO_HTTPS=off  -> plain HTTP, no cert attempts.
-    #   - Prod (AUTO_HTTPS unset): falls back to "disable_redirects" -> Caddy
-    #     still auto-provisions TLS certificates for the *.keinstein0.ch
-    #     hostnames and serves HTTPS on :443, only the automatic HTTP->HTTPS
-    #     redirect is skipped. (Caddy 2.11 no longer accepts "on"; the full
-    #     default-with-redirects behavior is only available by omitting this
-    #     directive, which can't be expressed through env substitution.)
-    auto_https {$AUTO_HTTPS:disable_redirects}
+	# Controls automatic HTTPS globally via the AUTO_HTTPS env var.
+	#   - Testing/dev: set AUTO_HTTPS=off  -> plain HTTP, no cert attempts.
+	#   - Prod (AUTO_HTTPS unset): falls back to "disable_redirects" -> Caddy
+	#     still auto-provisions TLS certificates for the *.keinstein0.ch
+	#     hostnames and serves HTTPS on :443, only the automatic HTTP->HTTPS
+	#     redirect is skipped. (Caddy 2.11 no longer accepts "on"; the full
+	#     default-with-redirects behavior is only available by omitting this
+	#     directive, which can't be expressed through env substitution.)
+	auto_https {$AUTO_HTTPS:disable_redirects}
 }
-
 
 # Reusable Matrix Forward Auth Snippet (For protected routes)
 # Usage: import matrix_gate "room-name-or-alias-or-id"
 (matrix_gate) {
-    forward_auth matrix-auth-gateway:5000 {
-        uri /verify?room={args[0]}
-        copy_headers X-Auth-User X-Auth-Power-Level
+	forward_auth matrix-auth-gateway:5000 {
+		uri /verify?room={args[0]}
+		copy_headers X-Auth-User X-Auth-Power-Level
 
-        # Not logged in at all -> send to the static login page,
-        # remembering where they were headed and which room this
-        # route requires, so the gateway's /login POST can send them
-        # back to the right place afterwards.
-        @needs_login status 401
-        handle_response @needs_login {
-            redir * "https://{host}/login.html?redirect={http.request.orig_uri}&room={args[0]}" 302
-        }
+		# Not logged in at all -> send to the static login page,
+		# remembering where they were headed and which room this
+		# route requires, so the gateway's /login POST can send them
+		# back to the right place afterwards.
+		@needs_login status 401
+		handle_response @needs_login {
+			redir * "/login.html?redirect={http.request.orig_uri}&room={args[0]}" 302
+		}
 
-        # Logged in, but not a member of the required room -> static
-        # "access denied" page, no redirect loop.
-        @forbidden status 403
-        handle_response @forbidden {
-            rewrite * /403.html
-            file_server {
-                root /apps/homepage
-            }
+		# Logged in, but not a member of the required room -> static
+		# "access denied" page, no redirect loop. Use `error * 403` so the
+		# site-level handle_errors block serves /403.html AND preserves the
+		# 403 status code (a bare file_server would return 200).
+		@forbidden status 403
+		handle_response @forbidden {
+			error * 403
+		}
+	}
+}
+
+# Site labels are env-substituted with production defaults:
+#   - Prod (env unset): bare hostnames -> Caddy auto-HTTPS binds them on :443
+#     and provisions real certificates (mirrors the un-parameterised config).
+#   - Test/dev (docker-compose.yml): the *_SITE vars are set to `http://...`
+#     forms, so with AUTO_HTTPS=off every site binds plain HTTP on :80 and the
+#     in-network test-runner can reach the prod hostnames via Docker DNS
+#     aliases (no cert attempts, no TLS).
+# -------------------------------------------------------------
+# Matrix Subdomain
+# -------------------------------------------------------------
+{$MATRIX_SITE:matrix.keinstein0.ch} {
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+        X-Content-Type-Options "nosniff"
+        -Server
+    }
+
+    # Matrix Client Discovery
+    header /.well-known/matrix/client Access-Control-Allow-Origin "*"
+    respond /.well-known/matrix/client `{"m.homeserver": {"base_url": "https://matrix.keinstein0.ch"}}` 200
+
+    # Matrix Server-to-Server Discovery (Tells remote servers to talk to us on port 443 via Caddy)
+    header /.well-known/matrix/server Access-Control-Allow-Origin "*"
+    respond /.well-known/matrix/server `{"m.server": "matrix.keinstein0.ch:443"}` 200
+
+    # Blanket reverse proxy to Tuwunel for all client and federation requests
+    reverse_proxy tuwunel:8008 {
+        # Transport options to support long-polling and Matrix sync streams
+        transport http {
+            dial_timeout 5s
         }
     }
 }
@@ -42,83 +74,94 @@
 
 
 # -------------------------------------------------------------
-# Matrix Subdomain
-# -------------------------------------------------------------
-matrix.keinstein0.ch {
-    # Matrix API routes
-    reverse_proxy tuwunel:8008
-}
-
-# -------------------------------------------------------------
 # Status Subdomain
 # -------------------------------------------------------------
-status.keinstein0.ch {
-    # Proxy to the Status API Go microservice (see StatusAPI/designfile.md).
-    # Hostname is the docker-compose service name on the homeserver_internal
-    # network; port 5001 is the Status API listen port.
-    reverse_proxy status-api:5001
-}
+# The Status API is gated behind room membership so unauthorized visitors
+# cannot inspect infrastructure status. The relative matrix_gate redirect
+# (see the snippet above) requires /login.html (and /assets/*) to be served
+# on this host too, hence the root + file_server handles below.
+{$STATUS_SITE:status.keinstein0.ch} {
+	root * /apps/homepage
 
+	# Static auth pages + shared assets so the relative matrix_gate
+	# redirect and 403 handler resolve valid files on this host.
+	handle /login.html {
+		file_server
+	}
+	handle /assets/* {
+		file_server
+	}
+
+	# Protected Status API - only members of the "status-viewers" room.
+	# On 401 the snippet redirects to /login.html?redirect=...&room=status-viewers;
+	# on 403 it serves /403.html; on 200 the request falls through to the proxy.
+	handle {
+		import matrix_gate "status-viewers"
+		reverse_proxy status-api:5001
+	}
+
+	handle_errors {
+		rewrite * /{err.status_code}.html
+		file_server
+	}
+}
 
 # -------------------------------------------------------------
 # WWW Domain + Matrix Well-Known Delegation
 # -------------------------------------------------------------
 
-www.keinstein0.ch, http://localhost {
-    header {
-        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
-        X-Frame-Options "DENY"
-        X-Content-Type-Options "nosniff"
-        -Server
-    }
+{$WWW_SITE:www.keinstein0.ch, http://localhost} {
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+		X-Frame-Options "DENY"
+		X-Content-Type-Options "nosniff"
+		-Server
+	}
 
-    root * /apps/homepage
+	root * /apps/homepage
 
-    # Matrix Client Discovery
-    header /_matrix/client/.well-known/matrix/client Access-Control-Allow-Origin "*"
-    respond /_matrix/client/.well-known/matrix/client `{"m.homeserver": {"base_url": "https://matrix.keinstein0.ch"}}` 200
+	# Public: the auth API itself. Exact paths only - does not match
+	# /login.html, which is a static file handled further down.
+	handle /login {
+		reverse_proxy matrix-auth-gateway:5000
+	}
+	handle /logout {
+		reverse_proxy matrix-auth-gateway:5000
+	}
 
-    # Matrix Server-to-Server Discovery (Federation)
-    header /_matrix/server/.well-known/matrix/server Access-Control-Allow-Origin "*"
-    respond /_matrix/server/.well-known/matrix/server `{"m.server": "matrix.keinstein0.ch:443"}` 200
+	# Public: the login page and any shared static assets (css/js/img -
+	# nothing sensitive lives there, so no need to gate them). Strip any
+	# client-supplied X-Auth-* headers here too, defensively, even though
+	# these paths don't reach a backend app that would trust them.
+	handle /login.html {
+		file_server
+	}
+	handle /assets/* {
+		file_server
+	}
 
-    # Public: the auth API itself. Exact paths only - does not match
-    # /login.html, which is a static file handled further down.
-    handle /login {
-        reverse_proxy matrix-auth-gateway:5000
-    }
-    handle /logout {
-        reverse_proxy matrix-auth-gateway:5000
-    }
+	# Local Status API surface for integration tests (AUTO_HTTPS=off).
+	# handle_path strips the /api/status prefix so requests map to the
+	# Status API's real routes (/healthz, /services, /services/{id}, /status).
+	# Gated so INT-STA-06 (protected status access) is exercised on localhost.
+	handle_path /api/status/* {
+		import matrix_gate "status-viewers"
+		reverse_proxy status-api:5001
+	}
 
-    # Public: the login page and any shared static assets (css/js/img -
-    # nothing sensitive lives there, so no need to gate them). Strip any
-    # client-supplied X-Auth-* headers here too, defensively, even though
-    # these paths don't reach a backend app that would trust them.
-    handle /login.html {
-        file_server
-    }
-    handle /assets/* {
-        file_server
-    }
+	# Everything else requires room membership. Strip any client-supplied
+	# X-Auth-* headers BEFORE forward_auth runs, so a visitor can't just
+	# set X-Auth-Power-Level: 100 on their own request - only the
+	# gateway's own /verify response can set these.
+	handle {
+		# header_up -X-Auth-User
+		# header_up -X-Auth-Power-Level
+		#import matrix_gate "test-service"
+		file_server
+	}
 
-    # Everything else requires room membership. Strip any client-supplied
-    # X-Auth-* headers BEFORE forward_auth runs, so a visitor can't just
-    # set X-Auth-Power-Level: 100 on their own request - only the
-    # gateway's own /verify response can set these.
-    handle {
-       # header_up -X-Auth-User
-       # header_up -X-Auth-Power-Level
-        #import matrix_gate "test-service"
-        file_server
-    }
-
-    handle_errors {
-        rewrite * /{err.status_code}.html
-        file_server
-    }
+	handle_errors {
+		rewrite * /{err.status_code}.html
+		file_server
+	}
 }
-
-
-
-

@@ -117,7 +117,7 @@ func (s *Server) handleAggregatedStatus(w http.ResponseWriter, r *http.Request) 
 	wg.Wait()
 
 	var up, degraded, down int
-	var overall checker.Status = StatusOKValue()
+	var overall = StatusOKValue()
 	for _, res := range results {
 		switch res.Status {
 		case checker.StatusOK:

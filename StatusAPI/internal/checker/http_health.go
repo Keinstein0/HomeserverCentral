@@ -108,7 +108,7 @@ func (c *HTTPHealthChecker) Check(ctx context.Context) CheckResult {
 		result.Message = fmt.Sprintf("request failed: %v", err)
 		return result
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	body, _ := io.ReadAll(io.LimitReader(resp.Body, 1<<16)) // cap at 64KB
 

@@ -1,0 +1,11 @@
+# Development/test dependencies for the Auth Service.
+# These are NOT installed in the production Docker image; they are only
+# needed to run the unit test suite locally and in CI.
+#
+# NOTE: the test suite imports `app.py`, which depends on the production
+# runtime packages (flask, requests, itsdangerous). Install the runtime
+# requirements first so `import app` succeeds:
+#   pip install -r requirements.txt -r requirements-dev.txt
+-r requirements.txt
+pytest==8.3.3
+responses==0.25.3

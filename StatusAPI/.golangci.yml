@@ -1,0 +1,21 @@
+# golangci-lint configuration for the Status API (v2 format).
+# Enables the default set of linters for correctness plus gofmt/goimports
+# for consistent formatting. Run with: golangci-lint run ./...
+version: "2"
+
+run:
+  timeout: 5m
+
+linters:
+  default: none
+  enable:
+    - errcheck
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+
+formatters:
+  enable:
+    - gofmt
+    - goimports
