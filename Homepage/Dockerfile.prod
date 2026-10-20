@@ -31,8 +31,11 @@ COPY --from=build /app/build /usr/share/nginx/html
 
 EXPOSE 80
 
-# wget (busybox, present in nginx:alpine) for the compose healthcheck
+# wget (busybox, present in nginx:alpine) for the compose healthcheck.
+# Use 127.0.0.1 explicitly: busybox wget resolves "localhost" to ::1 (IPv6)
+# first, but nginx only listens on IPv4 (0.0.0.0:80), so ::1 gets
+# "connection refused" and the container would report unhealthy forever.
 HEALTHCHECK --interval=10s --timeout=5s --retries=6 --start-period=10s \
-    CMD wget -q --spider http://localhost/index.html || exit 1
+    CMD wget -q --spider http://127.0.0.1/index.html || exit 1
 
 CMD ["nginx", "-g", "daemon off;"]
