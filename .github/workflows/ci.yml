@@ -119,33 +119,31 @@ jobs:
   # ===========================================================================
   # Step 3 & 4: Integration Tests + Teardown
   # ===========================================================================
-  # Spins up the full containerized stack, runs the end-to-end scenarios,
+  # Spins up the full containerized stack, runs the end-to-end scenarios
+  # INSIDE the compose network (test-runner service — the production
+  # hostnames resolve to the local Caddy container via Docker DNS aliases),
   # then tears down. Depends on both lint and unit-tests passing first.
   integration-tests:
     name: Integration Tests
     runs-on: ubuntu-latest
     needs: [lint, unit-tests]
+    env:
+      # Consistent project name across host and in-network compose commands
+      # (the test-runner shells out to `docker compose` for INT-CMP-01/02).
+      COMPOSE_PROJECT_NAME: homeserver
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
+      # Step 3: Build & spin up the test stack. All services start in the
+      # background; the test-runner (started below) waits for readiness
+      # itself before exercising the scenarios.
+      - name: Spin up test stack
+        run: docker compose --profile test --env-file .env.test up -d --build
 
-      - name: Install integration test deps
-        working-directory: tests/integration
-        run: pip install -r requirements.txt
+      - name: Run integration tests (in-network)
+        run: docker compose --profile test --env-file .env.test run --rm test-runner
 
-      # Step 3: Build & spin up the test container stack, then run the
-      # integration suite. The conftest.py session fixture handles the
-      # full lifecycle (up -> wait for health -> yield -> down).
-      - name: Run integration tests
-        working-directory: tests/integration
-        run: pytest -v
-
-      # Step 4: Teardown — safety net in case the fixture's teardown was
-      # skipped (e.g. pytest crashed mid-run). Always runs, even on failure.
+      # Step 4: Teardown — always runs, even on failure.
       - name: Teardown containers
         if: always()
         run: docker compose --profile test --env-file .env.test down -v

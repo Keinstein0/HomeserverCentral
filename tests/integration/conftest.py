@@ -1,21 +1,21 @@
 """
 Integration test suite for HomeserverCentral (Phase 2 / TESTING.md §3).
 
-Spins up the full containerized stack via Docker Compose under the `test`
-profile, waits for all services to be healthy, then exercises the 18
-end-to-end HTTP scenarios (INT-CAD-* through INT-CMP-*).
+pytest runs INSIDE the compose network (docker compose --profile test run
+--rm test-runner, orchestrated by scripts/ci.sh or the CI workflow). This
+is what lets the suite use the real production hostnames: matrix, status
+and www .keinstein0.ch are Docker DNS aliases of the local Caddy container
+(see docker-compose.yml), so requests exercise the exact production
+virtual hosts — no host-level DNS overrides, no test-only Caddyfile
+routes, no redundant well-known mirrors.
 
-Run with:
-    cd tests/integration
-    pip install -r requirements.txt
-    pytest -v
+The compose lifecycle (up -> run -> down) is owned by the caller; this
+module only waits for readiness before yielding to the tests.
 
-Set KEEP_STACK=1 to skip teardown after a run (useful for debugging):
-    KEEP_STACK=1 pytest -v
+Run the full suite via:  bash scripts/ci.sh
 """
 
 import os
-import subprocess
 import time
 
 import pytest
@@ -23,40 +23,37 @@ import requests
 
 
 # ---------------------------------------------------------------------------
-# Base URLs (host-published ports, see docker-compose.yml)
+# Base URLs (in-network). The *.keinstein0.ch names resolve to the local
+# Caddy container via Docker DNS aliases; service names resolve directly.
 # ---------------------------------------------------------------------------
-CADDY_URL = "http://localhost:80"
-GATEWAY_URL = "http://localhost:5000"
-STATUS_API_URL = "http://localhost:5001"
-MOCK_URL = "http://localhost:8008"
+CADDY_MATRIX_URL = "http://matrix.keinstein0.ch"  # Matrix client + S2S vhost
+CADDY_STATUS_URL = "http://status.keinstein0.ch"  # Gated status UI vhost
+CADDY_WWW_URL = "http://www.keinstein0.ch"        # Homepage + /api/status vhost
+GATEWAY_URL = "http://matrix-auth-gateway:5000"   # direct to the gateway
+STATUS_API_URL = "http://status-api:5001"         # direct to the Status API
+MOCK_URL = "http://tuwunel:8008"                  # direct to the mock homeserver
+
+# Back-compat alias: most Caddy-fronted scenarios run through the www vhost.
+CADDY_URL = CADDY_WWW_URL
 
 # Cache TTL from .env.test (seconds). Tests wait this long + a buffer for
 # the Status API cache to expire.
 CACHE_TTL = int(os.environ.get("CACHE_TTL_SECONDS", "2"))
 
-PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-COMPOSE_FILE = os.path.join(PROJECT_ROOT, "docker-compose.yml")
-ENV_FILE = os.path.join(PROJECT_ROOT, ".env.test")
+# Paths for INT-CMP-01/02, which shell out to `docker compose` (the runner
+# mounts the repo read-only at /workspace and the Docker socket).
+COMPOSE_FILE = os.environ.get("COMPOSE_FILE", "/workspace/docker-compose.yml")
+ENV_FILE = os.environ.get("ENV_FILE", "/workspace/.env.test")
+PROJECT_ROOT = os.path.dirname(COMPOSE_FILE)
 
 
-def _compose_cmd(*args):
-    """Build a docker compose command for the test profile."""
-    return [
-        "docker", "compose",
-        "--profile", "test",
-        "--env-file", ENV_FILE,
-        "-f", COMPOSE_FILE,
-        *args,
-    ]
-
-
-def _wait_for(url, timeout=120, interval=2, expected_status=200):
+def _wait_for(url, timeout=120, interval=2, expected_status=200, headers=None):
     """Poll a URL until it returns the expected status or timeout."""
     deadline = time.time() + timeout
     last_error = None
     while time.time() < deadline:
         try:
-            resp = requests.get(url, timeout=5, allow_redirects=False)
+            resp = requests.get(url, timeout=5, allow_redirects=False, headers=headers)
             if resp.status_code == expected_status:
                 return resp
         except requests.RequestException as exc:
@@ -69,41 +66,16 @@ def _wait_for(url, timeout=120, interval=2, expected_status=200):
 
 @pytest.fixture(scope="session")
 def stack():
-    """Start the full test stack, wait for health, yield, then tear down."""
-    # Clean up any leftover containers from a previous run.
-    subprocess.run(_compose_cmd("down", "-v"), capture_output=True, timeout=60)
-
-    # Build and start.
-    up_cmd = _compose_cmd("up", "-d", "--build")
-    result = subprocess.run(up_cmd, capture_output=True, text=True, timeout=300)
-    if result.returncode != 0:
-        # Print logs to help diagnose.
-        logs = subprocess.run(_compose_cmd("logs"), capture_output=True, text=True, timeout=30)
-        raise RuntimeError(
-            f"docker compose up failed (exit {result.returncode}):\n"
-            f"STDOUT: {result.stdout}\nSTDERR: {result.stderr}\nLOGS:\n{logs.stdout}"
-        )
-
-    # Wait for each service to be healthy (sequential, each has its own
-    # timeout). The order matters: the mock must be up before the gateway
-    # can serve logins, and the static build must complete before Caddy
-    # can serve /login.html.
+    """Wait for the compose stack (started by the caller) to be ready."""
     _wait_for(f"{MOCK_URL}/_matrix/client/versions", timeout=120)
     _wait_for(f"{GATEWAY_URL}/healthz", timeout=120)
     _wait_for(f"{STATUS_API_URL}/healthz", timeout=120)
-    _wait_for(f"{CADDY_URL}/_matrix/client/.well-known/matrix/client", timeout=120)
-    # /login.html depends on the homepage-build one-shot having populated
-    # the static_build volume.
-    _wait_for(f"{CADDY_URL}/login.html", timeout=120)
+    # The matrix vhost serves client + S2S discovery; /login.html on www
+    # depends on the homepage-build one-shot having populated static_build.
+    _wait_for(f"{CADDY_MATRIX_URL}/.well-known/matrix/client", timeout=120)
+    _wait_for(f"{CADDY_WWW_URL}/login.html", timeout=120)
 
     yield  # tests run here
-
-    # Teardown unless KEEP_STACK is set.
-    if os.environ.get("KEEP_STACK"):
-        print("\n[KEEP_STACK=1] Skipping teardown. Run manually: "
-              f"docker compose --profile test -f {COMPOSE_FILE} down -v")
-    else:
-        subprocess.run(_compose_cmd("down", "-v"), capture_output=True, timeout=60)
 
 
 # ---------------------------------------------------------------------------

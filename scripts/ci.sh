@@ -82,16 +82,16 @@ step "Step 2: Unit Tests"
     && ok "Homepage build + unit tests" || fail "Homepage build + unit tests"
 
 # =============================================================================
-# Step 3: Integration Tests (spin up stack, run, tear down)
+# Step 3: Integration Tests (spin up stack, run in-network, tear down)
 # =============================================================================
 step "Step 3: Integration Tests"
 
-# Install integration test deps
-(cd "$ROOT/tests/integration" && pip install -q -r requirements.txt 2>/dev/null)
+# Consistent project name so the host and the in-network test-runner
+# (which shells out to `docker compose` for INT-CMP-01/02) address the
+# same compose project.
+export COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME:-homeserver}"
 
-# Run the integration suite — conftest.py handles the full stack lifecycle
-# (up -> wait for health -> yield -> down). Use a trap to guarantee teardown
-# even on failure or Ctrl-C.
+# Use a trap to guarantee teardown even on failure or Ctrl-C.
 cleanup() {
     echo -e "\n${YELLOW}--- Tearing down test stack ---${NC}"
     docker compose --profile test --env-file "$ROOT/.env.test" \
@@ -99,7 +99,17 @@ cleanup() {
 }
 trap cleanup EXIT
 
-(cd "$ROOT/tests/integration" && python3 -m pytest -v) \
+# Spin up the full test stack (builds images, starts all services).
+docker compose --profile test --env-file "$ROOT/.env.test" \
+    -f "$ROOT/docker-compose.yml" up -d --build \
+    && ok "Test stack up" || fail "Test stack up"
+
+# Run the integration suite INSIDE the compose network via the test-runner
+# service: the production hostnames resolve to the local Caddy container
+# through Docker DNS aliases (see docker-compose.yml), so the suite
+# exercises the exact production virtual hosts.
+docker compose --profile test --env-file "$ROOT/.env.test" \
+    -f "$ROOT/docker-compose.yml" run --rm test-runner \
     && ok "Integration tests" || fail "Integration tests"
 
 # =============================================================================

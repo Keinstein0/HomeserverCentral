@@ -105,23 +105,66 @@ services:
     environment:
       - CADDY_INGRESS_IP=${CADDY_INGRESS_IP:-}
 
+      # Site labels for the Caddyfile (see Caddy/Caddyfile header comment).
+      # In this test/dev stack every site serves plain HTTP on :80, matching
+      # AUTO_HTTPS=off. Unset in prod, where the Caddyfile defaults apply.
       - SITE_DOMAIN=http://localhost
       - PROTOCOL=http
       - AUTO_HTTPS=off
+      - MATRIX_SITE=http://matrix.keinstein0.ch
+      - STATUS_SITE=http://status.keinstein0.ch
+      - WWW_SITE=http://www.keinstein0.ch, http://localhost
 
-
+    # Docker's embedded DNS makes these production hostnames resolve to this
+    # Caddy container inside homeserver_internal. The integration suite runs
+    # in-network (test-runner service) and therefore exercises the exact
+    # production virtual hosts without any host-level DNS overrides.
     networks:
-      - homeserver_internal
+      homeserver_internal:
+        aliases:
+          - matrix.keinstein0.ch
+          - status.keinstein0.ch
+          - www.keinstein0.ch
     depends_on:
       matrix-auth-gateway:
         condition: service_healthy
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:80/_matrix/client/.well-known/matrix/client"]
+      # The www vhost (reachable as "localhost" on :80 in this stack) must be
+      # able to serve the static login page from the homepage-build one-shot.
+      test: ["CMD", "curl", "-f", "http://localhost:80/login.html"]
       interval: 10s
       timeout: 5s
       retries: 6
       start_period: 10s
+
+  # ============================================================
+  # Test Runner - in-network integration suite (test profile)
+  # ============================================================
+  # pytest runs INSIDE the compose network so the production hostnames
+  # (matrix/status/www.keinstein0.ch) resolve to the local Caddy container
+  # via the DNS aliases above, instead of to the real servers. The whole
+  # repo is mounted read-only at /workspace so INT-CMP-01/02 can run
+  # `docker compose config` / `ps` against the same project (socket mounted,
+  # CLI + compose plugin installed at start). Lifecycle (up -> run -> down)
+  # is owned by scripts/ci.sh and .github/workflows/ci.yml.
+  test-runner:
+    image: python:3.12-alpine
+    container_name: ${COMPOSE_PROJECT_NAME:-homeserver}_test-runner
+    working_dir: /workspace/tests/integration
+    volumes:
+      - .:/workspace:ro
+      - ./tests/integration:/workspace/tests/integration:rw
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      - COMPOSE_PROJECT_NAME=${COMPOSE_PROJECT_NAME:-homeserver}
+      - DOCKER_HOST=unix:///var/run/docker.sock
+      - PYTHONDONTWRITEBYTECODE=1
+    command: sh -c "apk add --no-cache docker-cli docker-cli-compose >/dev/null && pip install --quiet -r requirements.txt && pytest -v"
+    networks:
+      - homeserver_internal
+    profiles:
+      - test
 
   # ============================================================
   # Homepage Build - one-shot static build for test profile
@@ -151,8 +194,8 @@ services:
   # custom DNS. Ignored by `docker compose up` (no default profile);
   # started by `docker compose --profile test up`. The network alias
   # `tuwunel` makes HOMESERVER_URL=http://tuwunel:8008 resolve to it.
-  # Port 8008 is published so the host test runner can reach /__admin/*
-  # control endpoints (failure simulation, request counting).
+  # Port 8008 is published for host-side debugging only; the in-network
+  # test-runner reaches it directly as http://tuwunel:8008.
   tuwunel-mock:
     build:
       context: ./tests/mock-tuwunel

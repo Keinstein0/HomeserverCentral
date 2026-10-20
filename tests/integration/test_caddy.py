@@ -1,17 +1,17 @@
-"""INT-CAD-01 through INT-CAD-04: Caddy ingress, static assets, auth redirect, headers."""
+"""INT-CAD-01 through INT-CAD-05: Caddy ingress, discovery, static assets, auth redirect, headers."""
 
 import pytest
 import requests
 
-from conftest import CADDY_URL
+from conftest import CADDY_MATRIX_URL, CADDY_URL
 
 
 # INT-CAD-01: Ingress & Startup Health
 def test_int_cad_01_ingress_startup(stack):
-    resp = requests.get(
-        f"{CADDY_URL}/_matrix/client/.well-known/matrix/client",
-        timeout=10,
-    )
+    # The matrix vhost serves client discovery at the spec path
+    # /.well-known/matrix/client (commit 80b423c). The hostname resolves to
+    # the local Caddy container via a Docker DNS alias (see compose file).
+    resp = requests.get(f"{CADDY_MATRIX_URL}/.well-known/matrix/client", timeout=10)
     assert resp.status_code == 200
     data = resp.json()
     assert "m.homeserver" in data
@@ -51,3 +51,18 @@ def test_int_cad_04_header_security(stack):
     assert resp.headers.get("X-Content-Type-Options") == "nosniff"
     # Server header should be stripped (-Server directive).
     assert "Server" not in resp.headers or resp.headers.get("Server", "") == ""
+
+
+# INT-CAD-05: Matrix Server-to-Server (Federation) Discovery
+def test_int_cad_05_s2s_discovery(stack):
+    """Verify the server-to-server discovery file is served on the matrix host.
+
+    Remote federation servers resolve matrix.keinstein0.ch and fetch
+    /.well-known/matrix/server to learn where to send S2S traffic. This block
+    was moved to the matrix virtual host in commit 80b423c.
+    """
+    resp = requests.get(f"{CADDY_MATRIX_URL}/.well-known/matrix/server", timeout=10)
+    assert resp.status_code == 200
+    data = resp.json()
+    assert "m.server" in data
+    assert data["m.server"] == "matrix.keinstein0.ch:443"

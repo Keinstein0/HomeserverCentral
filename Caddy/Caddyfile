@@ -37,10 +37,17 @@
 	}
 }
 
+# Site labels are env-substituted with production defaults:
+#   - Prod (env unset): bare hostnames -> Caddy auto-HTTPS binds them on :443
+#     and provisions real certificates (mirrors the un-parameterised config).
+#   - Test/dev (docker-compose.yml): the *_SITE vars are set to `http://...`
+#     forms, so with AUTO_HTTPS=off every site binds plain HTTP on :80 and the
+#     in-network test-runner can reach the prod hostnames via Docker DNS
+#     aliases (no cert attempts, no TLS).
 # -------------------------------------------------------------
 # Matrix Subdomain
 # -------------------------------------------------------------
-matrix.keinstein0.ch {
+{$MATRIX_SITE:matrix.keinstein0.ch} {
     header {
         Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
         X-Content-Type-Options "nosniff"
@@ -73,7 +80,7 @@ matrix.keinstein0.ch {
 # cannot inspect infrastructure status. The relative matrix_gate redirect
 # (see the snippet above) requires /login.html (and /assets/*) to be served
 # on this host too, hence the root + file_server handles below.
-status.keinstein0.ch {
+{$STATUS_SITE:status.keinstein0.ch} {
 	root * /apps/homepage
 
 	# Static auth pages + shared assets so the relative matrix_gate
@@ -103,7 +110,7 @@ status.keinstein0.ch {
 # WWW Domain + Matrix Well-Known Delegation
 # -------------------------------------------------------------
 
-www.keinstein0.ch, http://localhost {
+{$WWW_SITE:www.keinstein0.ch, http://localhost} {
 	header {
 		Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
 		X-Frame-Options "DENY"
