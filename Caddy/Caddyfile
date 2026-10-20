@@ -81,15 +81,16 @@
 # (see the snippet above) requires /login.html (and /assets/*) to be served
 # on this host too, hence the root + file_server handles below.
 {$STATUS_SITE:status.keinstein0.ch} {
-	root * /apps/homepage
-
-	# Static auth pages + shared assets so the relative matrix_gate
-	# redirect and 403 handler resolve valid files on this host.
+	# Static auth pages + shared assets are served by the homepage
+	# container (micro-frontend architecture, CONTINUOUS_DEPLOYMENT.md §2).
+	# The nginx inside preserves error statuses (e.g. /403.html -> 403), so
+	# the handle_errors block below keeps returning true 403s through the
+	# proxy hop.
 	handle /login.html {
-		file_server
+		reverse_proxy homepage:80
 	}
 	handle /assets/* {
-		file_server
+		reverse_proxy homepage:80
 	}
 
 	# Protected Status API - only members of the "status-viewers" room.
@@ -102,7 +103,7 @@
 
 	handle_errors {
 		rewrite * /{err.status_code}.html
-		file_server
+		reverse_proxy homepage:80
 	}
 }
 
@@ -118,8 +119,6 @@
 		-Server
 	}
 
-	root * /apps/homepage
-
 	# Public: the auth API itself. Exact paths only - does not match
 	# /login.html, which is a static file handled further down.
 	handle /login {
@@ -130,14 +129,13 @@
 	}
 
 	# Public: the login page and any shared static assets (css/js/img -
-	# nothing sensitive lives there, so no need to gate them). Strip any
-	# client-supplied X-Auth-* headers here too, defensively, even though
-	# these paths don't reach a backend app that would trust them.
+	# nothing sensitive lives there, so no need to gate them), all served
+	# by the homepage container.
 	handle /login.html {
-		file_server
+		reverse_proxy homepage:80
 	}
 	handle /assets/* {
-		file_server
+		reverse_proxy homepage:80
 	}
 
 	# Local Status API surface for integration tests (AUTO_HTTPS=off).
@@ -157,11 +155,11 @@
 		# header_up -X-Auth-User
 		# header_up -X-Auth-Power-Level
 		#import matrix_gate "test-service"
-		file_server
+		reverse_proxy homepage:80
 	}
 
 	handle_errors {
 		rewrite * /{err.status_code}.html
-		file_server
+		reverse_proxy homepage:80
 	}
 }

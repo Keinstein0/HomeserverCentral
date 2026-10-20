@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [main, testing]
+    branches: [main, testing, continuous-delivery]
   pull_request:
-    branches: [main, testing]
+    branches: [main, testing, continuous-delivery]
 
 jobs:
   # ===========================================================================
@@ -23,17 +23,17 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.24'
+          go-version: "1.24"
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
+          python-version: "3.12"
 
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
-          node-version: '24'
+          node-version: "24"
 
       # --- Status API (Go) ---
       - name: golangci-lint (Status API)
@@ -77,17 +77,17 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.24'
+          go-version: "1.24"
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
+          python-version: "3.12"
 
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
-          node-version: '24'
+          node-version: "24"
 
       # --- Status API (Go) ---
       - name: Go unit tests
