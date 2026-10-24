@@ -139,17 +139,12 @@
 		-Server
 	}
 
-	handle /webhook/deploy {
-		# Only allow POST requests
-		@not_post {
-			not method POST
-		}
+	handle /webhook/deploy* {
+		@not_post not method POST
 		respond @not_post "Method Not Allowed" 405
 
-		reverse_proxy 127.0.0.1:9000 {
-			# Rewrites the incoming path to match the hook ID defined in hooks.json
-			rewrite /hooks/deploy-homeserver
-		}
+		rewrite * /hooks/deploy-homeserver
+		reverse_proxy host.docker.internal:9000
 	}
 
 	# Public: the auth API itself. Exact paths only - does not match

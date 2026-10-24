@@ -45,6 +45,8 @@ services:
       - caddy_config:/config
     environment:
       - CADDY_INGRESS_IP=${CADDY_INGRESS_IP:-}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     networks:
       - proxy-net
       - homeserver_internal
