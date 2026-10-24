@@ -5,3 +5,7 @@
 </p>
 
 <p>This text should be shown if the auto deployment script actually works</p>
+<p>
+    This text should automatically be put in because of the auto deployment
+    system
+</p>
