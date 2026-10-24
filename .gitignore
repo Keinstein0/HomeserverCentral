@@ -7,3 +7,4 @@ Homepage/.svelte-kit
 __pycache__/
 *.pyc
 .pytest_cache/
+.playwright-cli

@@ -87,6 +87,7 @@ services:
       start_period: 10s
     networks:
       - homeserver_internal
+      - proxy-net
     restart: unless-stopped
 
   # ============================================================
@@ -110,6 +111,7 @@ services:
       start_period: 5s
     networks:
       - homeserver_internal
+      - proxy-net
     depends_on:
       matrix-auth-gateway:
         condition: service_healthy
