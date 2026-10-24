@@ -107,8 +107,11 @@ docker compose --profile test --env-file "$ROOT/.env.test" \
 # Run the integration suite INSIDE the compose network via the test-runner
 # service: the production hostnames resolve to the local Caddy container
 # through Docker DNS aliases (see docker-compose.yml), so the suite
-# exercises the exact production virtual hosts.
-docker compose --profile test --env-file "$ROOT/.env.test" \
+# exercises the exact production virtual hosts. The runner lives on its own
+# `runner` profile so `up` never auto-starts it (a premature up-started
+# suite would race this one and corrupt the shared Status API cache /
+# mock state -> flaky INT-STA-03/04/05).
+docker compose --profile test --profile runner --env-file "$ROOT/.env.test" \
     -f "$ROOT/docker-compose.yml" run --rm test-runner \
     && ok "Integration tests" || fail "Integration tests"
 

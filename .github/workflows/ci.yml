@@ -141,7 +141,10 @@ jobs:
         run: docker compose --profile test --env-file .env.test up -d --build
 
       - name: Run integration tests (in-network)
-        run: docker compose --profile test --env-file .env.test run --rm test-runner
+        # The test-runner lives on its own `runner` profile so `up` never
+        # auto-starts it (a premature `up`-started suite racing this run
+        # corrupts the shared Status API cache / mock state -> flaky tests).
+        run: docker compose --profile test --profile runner --env-file .env.test run --rm test-runner
 
       # Step 4: Teardown — always runs, even on failure.
       - name: Teardown containers
