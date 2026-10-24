@@ -47,6 +47,12 @@
     handle /login.html {
         reverse_proxy homepage:80
     }
+	handle /assets/* {
+        reverse_proxy homepage:80
+    }
+    handle /lib/* {
+        reverse_proxy homepage:80
+    }
 }
 
 
