@@ -1,0 +1,28 @@
+name: Deploy
+
+on:
+    workflow_run:
+        workflows: ["Build & Publish Images"] # Name of your build workflow
+        types:
+            - completed
+        branches: [main]
+    workflow_dispatch: # Allows manual button click in GitHub UI
+
+jobs:
+    deploy:
+        runs-on: ubuntu-latest
+        # Only run if the build workflow actually succeeded
+        if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
+        steps:
+            - name: Trigger Homeserver Webhook
+              env:
+                  SECRET: ${{ secrets.DEPLOY_WEBHOOK_SECRET }}
+              run: |
+                  PAYLOAD='{"ref":"refs/heads/main"}'
+                  # Compute HMAC-SHA256 signature using the secret key
+                  SIGNATURE=$(echo -n "$PAYLOAD" | openssl dgst -sha256 -hmac "$SECRET" | sed 's/^.* //')
+
+                  curl -f -X POST "https://www.keinstein0.ch/webhook/deploy" \
+                    -H "Content-Type: application/json" \
+                    -H "X-Hub-Signature-256: sha256=$SIGNATURE" \
+                    --data "$PAYLOAD"

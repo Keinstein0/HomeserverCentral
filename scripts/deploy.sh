@@ -13,6 +13,13 @@
 # =============================================================================
 set -euo pipefail
 
+LOCK_FILE="/tmp/homeserver-deploy.lock"
+exec 200>"$LOCK_FILE"
+if ! flock -n 200; then
+    echo "==> Another deployment is already in progress. Exiting cleanly."
+    exit 0
+fi
+
 # Ensure we run from repository root regardless of where script is called
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"

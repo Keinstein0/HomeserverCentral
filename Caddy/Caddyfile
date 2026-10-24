@@ -139,6 +139,19 @@
 		-Server
 	}
 
+	handle /webhook/deploy {
+		# Only allow POST requests
+		@not_post {
+			not method POST
+		}
+		respond @not_post "Method Not Allowed" 405
+
+		reverse_proxy 127.0.0.1:9000 {
+			# Rewrites the incoming path to match the hook ID defined in hooks.json
+			rewrite /hooks/deploy-homeserver
+		}
+	}
+
 	# Public: the auth API itself. Exact paths only - does not match
 	# /login.html, which is a static file handled further down.
 	handle /login {
