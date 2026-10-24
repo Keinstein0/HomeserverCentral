@@ -9,3 +9,8 @@
     This text should automatically be put in because of the auto deployment
     system
 </p>
+
+<p>
+    This text should automatically be put in because of the auto deployment
+    system. This one too
+</p>
