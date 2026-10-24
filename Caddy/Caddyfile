@@ -37,6 +37,19 @@
 	}
 }
 
+(auth_routes) {
+    handle /login {
+        reverse_proxy matrix-auth-gateway:5000
+    }
+    handle /logout {
+        reverse_proxy matrix-auth-gateway:5000
+    }
+    handle /login.html {
+        reverse_proxy homepage:80
+    }
+}
+
+
 # Site labels are env-substituted with production defaults:
 #   - Prod (env unset): bare hostnames -> Caddy auto-HTTPS binds them on :443
 #     and provisions real certificates (mirrors the un-parameterised config).
@@ -81,17 +94,18 @@
 # (see the snippet above) requires /login.html (and /assets/*) to be served
 # on this host too, hence the root + file_server handles below.
 {$STATUS_SITE:status.keinstein0.ch} {
+	import auth_routes
 	# Static auth pages + shared assets are served by the homepage
 	# container (micro-frontend architecture, CONTINUOUS_DEPLOYMENT.md §2).
 	# The nginx inside preserves error statuses (e.g. /403.html -> 403), so
 	# the handle_errors block below keeps returning true 403s through the
 	# proxy hop.
-	handle /login.html {
-		reverse_proxy homepage:80
-	}
-	handle /assets/* {
-		reverse_proxy homepage:80
-	}
+	#handle /login.html {
+	#	reverse_proxy homepage:80
+	#}
+	#handle /assets/* {
+	#	reverse_proxy homepage:80
+	#}
 
 	# Protected Status API - only members of the "status-viewers" room.
 	# On 401 the snippet redirects to /login.html?redirect=...&room=status-viewers;
