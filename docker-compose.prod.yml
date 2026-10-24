@@ -46,14 +46,8 @@ services:
     environment:
       - CADDY_INGRESS_IP=${CADDY_INGRESS_IP:-}
     networks:
+      - proxy-net
       - homeserver_internal
-    depends_on:
-      matrix-auth-gateway:
-        condition: service_healthy
-      homepage:
-        condition: service_healthy
-      status-api:
-        condition: service_healthy
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "-H", "Host: www.keinstein0.ch", "http://localhost:80/login.html"]
@@ -123,7 +117,9 @@ services:
 
 networks:
   # Fixed network name so the tuwunel homeserver container (its own compose
-  # project) can join via `docker network connect homeserver_internal ...`.
+  # project) can join via `docker network connect proxy-net ...`.
+  proxy-net:
+    external: true
   homeserver_internal:
     name: homeserver_internal
     driver: bridge

@@ -154,15 +154,23 @@ services:
       start_period: 10s
 
   # ============================================================
-  # Test Runner - in-network integration suite (test profile)
+  # Test Runner - in-network integration suite (runner profile)
   # ============================================================
-  # pytest runs INSIDE the compose network so the production hostnames
-  # (matrix/status/www.keinstein0.ch) resolve to the local Caddy container
-  # via the DNS aliases above, instead of to the real servers. The whole
+  # pytest runs INSIDE the compose network so the suite exercises the
+  # production hostnames (matrix/status/www .keinstein0.ch resolve to the
+  # Caddy container via DNS aliases; see the caddy service). The whole
   # repo is mounted read-only at /workspace so INT-CMP-01/02 can run
-  # `docker compose config` / `ps` against the same project (socket mounted,
-  # CLI + compose plugin installed at start). Lifecycle (up -> run -> down)
-  # is owned by scripts/ci.sh and .github/workflows/ci.yml.
+  # `docker compose config` / `ps` against the same project (socket
+  # mounted, CLI + compose plugin installed at start).
+  #
+  # IMPORTANT: this service lives on its own `runner` profile, NOT `test`.
+  # If it were under `test`, `docker compose --profile test up -d` would
+  # start it and run the whole suite, racing the `compose run --rm
+  # test-runner` step that is supposed to be the only suite execution
+  # (two concurrent suites corrupt the shared Status API cache and the
+  # mock's failure-mode/counter state -> flaky INT-STA-03/04/05).
+  # Always execute it via:
+  #   docker compose --profile test --profile runner run --rm test-runner
   test-runner:
     image: python:3.12-alpine
     container_name: ${COMPOSE_PROJECT_NAME:-homeserver}_test-runner
@@ -179,7 +187,7 @@ services:
     networks:
       - homeserver_internal
     profiles:
-      - test
+      - runner
 
   # ============================================================
   # Tuwunel Mock - Matrix Homeserver mock (test/dev only)

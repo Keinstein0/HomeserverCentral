@@ -118,7 +118,7 @@ Because SSH and VPN tunnels are prohibited by network policy, the deployment tri
 ### Phase 3: Ingress & Caddy Routing
 - [ ] **Webhook Route Definition**: Add an obscure, reverse-proxied route in Caddy directing external webhook requests to the local webhook daemon.
 - [ ] **Access Restrictions**: Apply Caddy filters (GitHub IP range checks and rate-limiting rules) to protect the webhook route.
-- [ ] **Internal Routing Update**: Route the frontend domain in Caddy to the new `homepage` container.
+- [X] **Internal Routing Update**: Route the frontend domain in Caddy to the new `homepage` container.
 
 ### Phase 4: CI/CD Wiring & Verification
 - [ ] **CD Trigger Job in GitHub Actions**: Add a deployment step to GitHub Actions that requests the OIDC token and sends the webhook payload once all builds and tests pass.
