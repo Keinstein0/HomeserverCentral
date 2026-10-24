@@ -35,6 +35,8 @@ Env vars (see docker-compose.snippet.yml):
   SESSION_MAX_AGE      seconds, default 7 days
   MEMBERSHIP_CACHE_TTL seconds, default 60 - avoids hitting the homeserver
                        on every single asset request
+  COOKIE_DOMAIN        optional, domain the session cookie is scoped to
+                       (leading dot covers subdomains), default .keinstein0.ch
 """
 
 import logging
@@ -272,6 +274,9 @@ def login_post():
 
     resp = make_response(redirect(redirect_to))
     signed = serializer.dumps(session_id)
+
+    COOKIE_DOMAIN = os.environ.get("COOKIE_DOMAIN", ".keinstein0.ch")
+
     resp.set_cookie(
         COOKIE_NAME,
         signed,
@@ -279,6 +284,7 @@ def login_post():
         httponly=True,
         secure=True,
         samesite="Lax",
+        domain=COOKIE_DOMAIN,
     )
     return resp
 

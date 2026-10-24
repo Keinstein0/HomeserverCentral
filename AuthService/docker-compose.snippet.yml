@@ -4,6 +4,7 @@ environment:
   GATEWAY_SECRET_KEY: ${BOT_ACCESS_TOKEN}
   SESSION_MAX_AGE: 604800
   MEMBERSHIP_CACHE_TTL: 60
+  COOKIE_DOMAIN: ${COOKIE_DOMAIN:-.keinstein0.ch}
 
 # Health check endpoint
 healthcheck:

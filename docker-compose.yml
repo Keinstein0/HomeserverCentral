@@ -18,6 +18,7 @@ services:
       - MATRIX_SERVER_NAME=${MATRIX_SERVER_NAME:-keinstein0.ch}
       - SESSION_MAX_AGE=604800
       - MEMBERSHIP_CACHE_TTL=60
+      - COOKIE_DOMAIN=${COOKIE_DOMAIN:-.keinstein0.ch}
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5000/healthz"]
       interval: 30s
