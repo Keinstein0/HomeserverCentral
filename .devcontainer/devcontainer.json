@@ -33,7 +33,8 @@
         "redhat.vscode-yaml",
         "github.copilot",
         "ms-vscode.vscode-docker",
-        "michelemelluso.gitignore"
+        "michelemelluso.gitignore",
+        "armine-yepremyan.2048"
       ],
       "settings": {
         "python.defaultInterpreterPath": "/usr/local/bin/python",
