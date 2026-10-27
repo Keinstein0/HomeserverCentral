@@ -2,6 +2,7 @@
 
 title: LB 234 - Dev Ops Anwenden
 author: Straub Alexander
+repository: https://github.com/Keinstein0/HomeserverCentral
 
 ---
 
@@ -68,12 +69,27 @@ Zuvor versuchte ich statt Cline einige MCP servers zu installieren, jedoch stell
 
 # Handlungsziel 3:
 ## 1. Versionierung
+Um meinen code zu versionieren gibt es einige möglichkeiten. So kann man beispielsweise das ganze projekt in ein .zip file packen oder code snippets manuell sichern. Jedoch führen diese mittel sehr schnell zu sehr viel chaos. Weiter gibt es dedizierte Versionierungssysteme wie git, Subversion oder Perforce welche klarere strukturen bieten. Insbesondere git sticht hier heraus, da es heutzutage der klare industriestandard ist für solche projekte. Zudem ist git ein Verteiltes Versionierungssystem. Das heisst das auch wenn git server down wäre könnte ich immer noch auf die alten versionen meines codes zugreifen.
 
+Ich verwende git in Kombination mit GitHub, da sich auf meinem github alle meine bisherigen privaten projekte befinden und das backup so sicher in der cloud gespeichert wird.
 
 ## 2. Arbeiten mit git in diesem Projekt
+Um in meinem repository so strukturiert wie möglich zu arbeiten, sind alle relevanten elemente auf sogennantem feature branches. Der main branch agiert so als ein "source of all truth" backup mit dem erst alle änderungen mittels PRs vereint werden sobald sie vollständig und korrekt implementiert sind. 
+
+Dieses modell funktioniert auch in softwareprojekten mit mehreren mitgliedern, denn so entwickelt jeder entwickler auf einem branch ohne sich gegenseitig in den weg zu kommen. 
+
+Die Pull Requests erlauben mir zudem präzise zu verwalten was auf den Main branch darf und was nicht. Die automatisierten tests via GitHub actions bestätigen ausserdem dass die PR sicher ist um mit dem main branch vereint zu werden.
+![alt text](documentationAssets/git.png)
+Im bild sieht man die interaktion zwischen den unterschiedlichen feature branches und dem main branch.
+
+## 3. Artefaktverwaltung
+Artefakte (also die generierten produkte des codes) werden im "Build" schritt der deployment pipeline automatisch generiert und auf dem ghcr als container publiziert die mein homeserver später einfach herunterladen kann. 
+
+Statt semantic versioning verwende ich den commit hash als die version des containers, da ich so zurückverfolgen kann auf welchem stand der code jetzt genau ist, und es direkt mit dem repository abgleichen kann.
 
 # Handlungsziel 4:
 ## 1. Testfälle
+
 
 ## 2. Unit Tests
 
