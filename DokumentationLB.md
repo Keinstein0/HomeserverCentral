@@ -6,6 +6,8 @@ repository: https://github.com/Keinstein0/HomeserverCentral
 
 ---
 
+*Notiz: Dies ist das unkorrigierte sourcedokument für die tatsächliche dokumentation. Für tatsächliche dokumentation bitte das .odt dokument anschauen*
+
 # Handlungsziel 1:
 ## 1. Was ist Dev Ops?
 Dev Ops (Development Operations) ist der bereich der sich mit dem Prozess der Softwarentwicklung befasst. Das heisst den entwicklern, die den tatsächlichen code schreiben, eine effiziente umgebung zu geben. So ist das Konfigurieren der IDE, das definieren von Versionierungsprozessen, die Anforderungs und Qualitätssicherung des geschriebenen codes sowie das Deployment des finalen projektes alles teile des bereichs Dev Ops. So zieht Dev Ops eine brücke zwischen den Entwicklern, die den Code schreiben, und dem Betrieb, der den Code laufen lässt.
