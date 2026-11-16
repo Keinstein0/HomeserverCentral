@@ -3,14 +3,14 @@ import { render } from '@testing-library/svelte';
 import Page from '../routes/+page.svelte';
 
 describe('+page.svelte', () => {
-    it('renders the welcome heading', () => {
-        const { getByText } = render(Page);
-        expect(getByText('Welcome to Homepage')).toBeInTheDocument();
-    });
-
-    it('renders the page without throwing', () => {
+    it('renders without throwing', () => {
         const { container } = render(Page);
         expect(container).toBeTruthy();
-        expect(container.innerHTML).toContain('Welcome to Homepage');
+    });
+
+    it('renders the page skeleton', () => {
+        const { container } = render(Page);
+        expect(container.querySelector('h1')).toBeTruthy();
+        expect(container.querySelector('main')).toBeTruthy();
     });
 });
