@@ -5,6 +5,7 @@
 
     import me from "../assets/images/me.jpg";
     import { Pin } from "../components/pin/pin";
+    import NixieAgeCounter from "../components/nixie/NixieAgeCounter.svelte";
     const MainPin = new Pin("#ff0000");
 </script>
 
@@ -29,12 +30,31 @@
     <Grid>
         <PhotoNote src={me} alt="a picture of me" pin={MainPin}>
             <h2>that's me :D</h2>
+            <p style="font-size: 10px;">
+                Actually why am I putting my face on the internet?
+            </p>
         </PhotoNote>
 
         <PaperNote class="about-me" color="#e8da89" pin={MainPin} width="55%">
             <h2>About me:</h2>
-            <p>I like cheese</p>
+            <p style="font-size: 20px;">
+                Hi, I'm Alexander Straub, and I'm currently enrolled in the IMS
+                program at the Alte Kanti and the Berufsbildung Baden. <br />
+                For me, the most exciting thing about computer science is
+                <b>turning ideas into finished products</b>. Does that sound
+                generic? Yes it does. But I still love seeing an idea or
+                architecture go from a piece of paper to something that actually
+                runs.
+            </p>
         </PaperNote>
+
+        <div class="nixie-age-counter-container">
+            <NixieAgeCounter
+                birthDate="2008-09-24-00:00"
+                decimals={8}
+                label="MY AGE"
+            />
+        </div>
     </Grid>
 </main>
 
@@ -86,6 +106,18 @@
        (2 × 280px min column + 2rem gap). */
     @media (min-width: 620px) {
         :global(.about-me) {
+            grid-column: span 2;
+        }
+    }
+
+    :global(.nixie-age-counter-container) {
+        justify-self: center;
+    }
+
+    /* Only span two columns once the grid actually has two columns
+       (2 × 280px min column + 2rem gap). */
+    @media (min-width: 650px) {
+        :global(.nixie-age-counter-container) {
             grid-column: span 2;
         }
     }
