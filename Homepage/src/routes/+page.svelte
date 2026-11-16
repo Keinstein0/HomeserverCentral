@@ -55,6 +55,12 @@
                 label="MY AGE"
             />
         </div>
+
+        <div style="background-color: red; margin-left margin-right: 60px">
+            <PaperNote color="#e8da89" pin={MainPin}>
+                <h2>My story</h2>
+            </PaperNote>
+        </div>
     </Grid>
 </main>
 
