@@ -1,6 +1,8 @@
 <script lang="ts">
     import PaperNote from "../components/PaperNote.svelte";
-    import Pin from "../assets/pins/Pin-01.png";
+
+    import { Pin } from "../components/pin/pin";
+    const MainPin = new Pin("#cbf5e1");
 </script>
 
 <main class="board">
@@ -8,15 +10,16 @@
         <PaperNote
             variant="lined"
             color="#cbf5e1"
-            pinSrc={Pin}
-            pinColor="#cbf5e1"
+            pin={MainPin}
             width="min(560px, 94vw)"
             maxRotation={2}
         >
             <h1 class="main-title">ALEXANDER STRAUB</h1>
             <p
                 style="text-align: center; margin-top: 0.2rem; font-weight: bold;"
-            ></p>
+            >
+                Hello world
+            </p>
         </PaperNote>
     </header>
 </main>

@@ -1,4 +1,4 @@
-import defaultPinSrc from './assets/Pin-01.png';
+import defaultPinSrc from './../../assets/pins/Pin-01.png';
 
 /**
  * A recolorable pushpin.

@@ -1,64 +1,26 @@
 <script lang="ts">
+    import type { Pin } from "./pin/pin";
+    import PinView from "./pin/PinView.svelte";
+
     export let variant: "sticky" | "lined" = "sticky";
     export let color = "#fff677";
-    export let pinSrc: string | undefined = undefined;
-    export let pinColor = "#d90000";
+    export let pin: Pin | undefined = undefined;
     export let width = "100%";
     export let maxRotation = 4;
     export let maxOffset = 2;
 
-    // Unique ID so multiple pins on the same page can have different colors
-    const filterId = `pin-tint-${Math.random().toString(36).slice(2, 9)}`;
-
-    const randomRotate = (
-        Math.random() * maxRotation * 2 -
-        maxRotation
-    ).toFixed(1);
+    // Random per-instance jitter; computed once on component creation.
+    // ($derived is a Svelte 5 rune — this project runs Svelte 4.)
+    const randomRotate = (Math.random() * maxRotation * 2 - maxRotation).toFixed(1);
     const randomX = (Math.random() * maxOffset * 2 - maxOffset).toFixed(3);
     const randomY = (Math.random() * maxOffset * 2 - maxOffset).toFixed(3);
-    const hoverRotate = (
-        parseFloat(randomRotate) + (parseFloat(randomRotate) < 0 ? -2.5 : 2.5)
+    $: hoverRotate = (
+        parseFloat(randomRotate) +
+        (parseFloat(randomRotate) < 0 ? -2.5 : 2.5)
     ).toFixed(1);
 </script>
 
-<!-- Hidden SVG filter that recolors the pin to the exact hex code -->
-{#if pinSrc}
-    <svg
-        width="0"
-        height="0"
-        style="position: absolute; pointer-events: none;"
-        aria-hidden="true"
-    >
-        <defs>
-            <filter id={filterId} color-interpolation-filters="sRGB">
-                <!-- 1. Desaturate the red pin to grayscale -->
-                <feColorMatrix type="saturate" values="0" result="gray" />
-
-                <!-- 2. Normalize luminance so red midtones become bright enough to accept light colors (like yellow/cyan) while keeping white highlights pure white -->
-                <feComponentTransfer in="gray" result="normalized">
-                    <feFuncR type="linear" slope="1.8" intercept="0.05" />
-                    <feFuncG type="linear" slope="1.8" intercept="0.05" />
-                    <feFuncB type="linear" slope="1.8" intercept="0.05" />
-                </feComponentTransfer>
-
-                <!-- 3. Flood with your exact hex color -->
-                <feFlood flood-color={pinColor} result="tint" />
-
-                <!-- 4. Multiply the hex color onto the normalized grayscale pin -->
-                <feBlend
-                    mode="multiply"
-                    in="normalized"
-                    in2="tint"
-                    result="colored"
-                />
-
-                <!-- 5. Clip back to the original image's transparency (alpha channel) -->
-                <feComposite in="colored" in2="SourceGraphic" operator="in" />
-            </filter>
-        </defs>
-    </svg>
-{/if}
-
+<!-- Recolorable pushpin, see Pin.svelte -->
 <div
     class="note-wrapper"
     style:--note-width={width}
@@ -67,14 +29,8 @@
     style:--x-off="{randomX}vw"
     style:--y-off="{randomY}vh"
 >
-    {#if pinSrc}
-        <img
-            src={pinSrc}
-            class="pin-img"
-            style:filter="url(#{filterId})"
-            alt="Pushpin"
-            aria-hidden="true"
-        />
+    {#if pin}
+        <PinView {pin} />
     {/if}
 
     <div
@@ -112,18 +68,6 @@
         transform: rotate(var(--hover-rot))
             translate(var(--x-off), var(--y-off)) scale(1.025);
         z-index: 20;
-    }
-
-    .pin-img {
-        position: absolute;
-        top: -16px;
-        left: 50%;
-        transform: translateX(-50%);
-        width: 44px;
-        height: auto;
-        z-index: 25;
-        pointer-events: none;
-        filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.45));
     }
 
     .paper {

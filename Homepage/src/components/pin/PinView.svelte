@@ -1,8 +1,8 @@
 <script lang="ts">
-  import type { Pin } from './pin';
+  import type { Pin } from "./pin";
 
   // Renders a Pin instance; see pin.ts for how to create one.
-  let { pin }: { pin: Pin } = $props();
+  export let pin: Pin;
 </script>
 
 <svg
@@ -14,13 +14,18 @@
   <defs>
     <filter id={pin.filterId} color-interpolation-filters="sRGB">
       <!-- 1. Desaturate the red pin to grayscale -->
-      <feColorMatrix in="SourceGraphic" type="saturate" values="0" result="gray" />
+      <feColorMatrix
+        in="SourceGraphic"
+        type="saturate"
+        values="0"
+        result="gray"
+      />
 
       <!-- 2. Normalize luminance so red midtones become bright enough to accept light colors (like yellow/cyan) while keeping white highlights pure white -->
       <feComponentTransfer in="gray" result="lifted">
-        <feFuncR type="linear" slope="1.8" intercept="0.05" />
-        <feFuncG type="linear" slope="1.8" intercept="0.05" />
-        <feFuncB type="linear" slope="1.8" intercept="0.05" />
+        <feFuncR type="linear" slope="2.6" intercept="0.12" />
+        <feFuncG type="linear" slope="2.6" intercept="0.12" />
+        <feFuncB type="linear" slope="2.6" intercept="0.12" />
       </feComponentTransfer>
 
       <!-- 3. Flood with your exact hex color and multiply it on -->
