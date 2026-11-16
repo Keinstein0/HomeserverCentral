@@ -1,8 +1,11 @@
 <script lang="ts">
     import PaperNote from "../components/PaperNote.svelte";
+    import PhotoNote from "../components/PhotoNote.svelte";
+    import Grid from "../components/Grid.svelte";
 
+    import me from "../assets/images/me.jpg";
     import { Pin } from "../components/pin/pin";
-    const MainPin = new Pin("#cbf5e1");
+    const MainPin = new Pin("#ff0000");
 </script>
 
 <main class="board">
@@ -14,14 +17,25 @@
             width="min(560px, 94vw)"
             maxRotation={2}
         >
-            <h1 class="main-title">ALEXANDER STRAUB</h1>
+            <h1 class="main-title">Welcome to my website</h1>
             <p
                 style="text-align: center; margin-top: 0.2rem; font-weight: bold;"
             >
-                Hello world
+                I hope you enjoy it
             </p>
         </PaperNote>
     </header>
+
+    <Grid>
+        <PhotoNote src={me} alt="a picture of me" pin={MainPin}>
+            <h2>that's me :D</h2>
+        </PhotoNote>
+
+        <PaperNote color="#e8da89" pin={MainPin}>
+            <h2>About me:</h2>
+            <p>I like cheese</p>
+        </PaperNote>
+    </Grid>
 </main>
 
 <style>
@@ -56,7 +70,7 @@
     }
 
     .main-title {
-        font-size: 2rem;
+        font-size: 3rem;
         letter-spacing: 1px;
         margin: 0;
     }
