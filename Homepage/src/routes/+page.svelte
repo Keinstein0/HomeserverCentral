@@ -19,7 +19,7 @@
         >
             <h1 class="main-title">Welcome to my website</h1>
             <p
-                style="text-align: center; margin-top: 0.2rem; font-weight: bold;"
+                style="text-align: center; margin-top: 0.2rem; font-weight: regular; font-size: 24px;"
             >
                 I hope you enjoy it
             </p>
@@ -31,7 +31,7 @@
             <h2>that's me :D</h2>
         </PhotoNote>
 
-        <PaperNote color="#e8da89" pin={MainPin}>
+        <PaperNote class="about-me" color="#e8da89" pin={MainPin} width="55%">
             <h2>About me:</h2>
             <p>I like cheese</p>
         </PaperNote>
@@ -66,21 +66,34 @@
     .title-container {
         display: flex;
         justify-content: center;
-        margin-bottom: 2rem;
+        margin-bottom: 6rem;
     }
-
-    .main-title {
-        font-size: 3rem;
-        letter-spacing: 1px;
-        margin: 0;
-    }
-
     .notes-grid {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(min(290px, 100%), 1fr));
         gap: 2.5rem 2rem;
         align-items: start;
         justify-items: center;
+    }
+
+    /* .about-me targets the .note-wrapper inside PaperNote, which is the
+       grid item — so it must be :global from this scoped stylesheet. */
+    :global(.about-me) {
+        justify-self: center;
+    }
+
+    /* Only span two columns once the grid actually has two columns
+       (2 × 280px min column + 2rem gap). */
+    @media (min-width: 620px) {
+        :global(.about-me) {
+            grid-column: span 2;
+        }
+    }
+
+    .main-title {
+        font-size: 3rem;
+        letter-spacing: 1px;
+        margin: 0;
     }
 
     .note-textarea {

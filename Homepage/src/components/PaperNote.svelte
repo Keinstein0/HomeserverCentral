@@ -9,6 +9,11 @@
     export let maxRotation = 4;
     export let maxOffset = 2;
 
+    // Extra classes forwarded onto the wrapper element (the grid item),
+    // e.g. for grid placement: <PaperNote class="about-me">
+    // (`class` is a reserved word in TS, so it can't be a plain `export let`.)
+    $: extraClass = ($$props.class as string) ?? "";
+
     // Random per-instance jitter; computed once on component creation.
     // ($derived is a Svelte 5 rune — this project runs Svelte 4.)
     const randomRotate = (Math.random() * maxRotation * 2 - maxRotation).toFixed(1);
@@ -22,7 +27,7 @@
 
 <!-- Recolorable pushpin, see Pin.svelte -->
 <div
-    class="note-wrapper"
+    class="note-wrapper {extraClass}"
     style:--note-width={width}
     style:--base-rot="{randomRotate}deg"
     style:--hover-rot="{hoverRotate}deg"
