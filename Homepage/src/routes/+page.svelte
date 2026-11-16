@@ -27,7 +27,7 @@
         </PaperNote>
     </header>
 
-    <Grid>
+    <Grid gap="2.5rem 2.25rem">
         <PhotoNote src={me} alt="a picture of me" pin={MainPin}>
             <h2>that's me :D</h2>
             <p style="font-size: 10px;">
@@ -56,7 +56,7 @@
             />
         </div>
 
-        <div style="background-color: red; margin-left margin-right: 60px">
+        <div class="my-story">
             <PaperNote color="#e8da89" pin={MainPin}>
                 <h2>My story</h2>
             </PaperNote>
@@ -94,14 +94,6 @@
         justify-content: center;
         margin-bottom: 6rem;
     }
-    .notes-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(min(290px, 100%), 1fr));
-        gap: 2.5rem 2rem;
-        align-items: start;
-        justify-items: center;
-    }
-
     /* .about-me targets the .note-wrapper inside PaperNote, which is the
        grid item — so it must be :global from this scoped stylesheet. */
     :global(.about-me) {
@@ -109,7 +101,7 @@
     }
 
     /* Only span two columns once the grid actually has two columns
-       (2 × 280px min column + 2rem gap). */
+       (2 × 280px min column + 2.25rem gap). */
     @media (min-width: 620px) {
         :global(.about-me) {
             grid-column: span 2;
@@ -121,7 +113,7 @@
     }
 
     /* Only span two columns once the grid actually has two columns
-       (2 × 280px min column + 2rem gap). */
+       (2 × 280px min column + 2.25rem gap). */
     @media (min-width: 650px) {
         :global(.nixie-age-counter-container) {
             grid-column: span 2;
