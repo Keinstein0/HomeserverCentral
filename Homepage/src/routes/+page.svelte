@@ -1,5 +1,5 @@
 <script lang="ts">
-    import PaperNote from "../components/PaperNode.svelte";
+    import PaperNote from "../components/PaperNote.svelte";
     import Pin from "../assets/pins/Pin-01.png";
 </script>
 
@@ -16,11 +16,7 @@
             <h1 class="main-title">ALEXANDER STRAUB</h1>
             <p
                 style="text-align: center; margin-top: 0.2rem; font-weight: bold;"
-            >
-                Teeeeeesssst eeeee Oh <br /> Oh <br />Oh <br />Oh <br />Oh
-                <br />Oh <br />Oh <br />Oh <br />Oh <br />Oh <br />Oh <br />Oh
-                <br />Oh <br />Oh <br />Oh <br />Oh <br />Oh <br />Oh <br />
-            </p>
+            ></p>
         </PaperNote>
     </header>
 </main>
