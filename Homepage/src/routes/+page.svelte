@@ -260,9 +260,11 @@
         margin: 0;
         min-height: 100vh;
         background-image: url("./../assets/cardboard.webp");
-        background-size: repeat;
+        /* The texture tiles cleanly in X and Y, so scale the tiles down
+           (75% = tile edges at three-quarter size) for a finer grain. */
+        background-size: 75%;
         background-position: center;
-        background-repeat: repeat-y;
+        background-repeat: repeat;
         background-color: #2b221a;
         font-family: "handwritten", cursive, sans-serif;
     }
