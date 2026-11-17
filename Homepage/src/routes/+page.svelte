@@ -61,7 +61,9 @@
         // derived from the pin image's live box, its anchor fractions
         // and the wrapper's rotation — exact for any jitter/rotation.
         const pins: { x: number; y: number }[] = [];
-        for (const wrapper of storyStackEl.querySelectorAll(".note-wrapper")) {
+        for (const wrapper of storyStackEl.querySelectorAll<HTMLElement>(
+            ".note-wrapper",
+        )) {
             const img = wrapper.querySelector<HTMLImageElement>("img.pin-img");
             if (!img) continue;
             const rect = img.getBoundingClientRect();
@@ -146,9 +148,11 @@
             typeof ResizeObserver === "undefined"
                 ? undefined
                 : new ResizeObserver(measureThread);
-        if (observer) {
+        if (observer && storyStackEl) {
             observer.observe(storyStackEl);
-            for (const wrapper of storyStackEl.querySelectorAll(".note-wrapper")) {
+            for (const wrapper of storyStackEl.querySelectorAll(
+                ".note-wrapper",
+            )) {
                 observer.observe(wrapper);
             }
         }
@@ -346,9 +350,10 @@
         margin-bottom: 0.35rem;
     }
 
-    /* Red thread: an SVG overlay strung behind the notes. The paths are
-       measured from the live pin positions (see measureThread), so
-       every loop ties a left pin to the next with visible slack. */
+    /* Red thread: an SVG overlay strung *between* the note paper and the
+       pins — the paper layer sits at z-index 1 (PaperNote), the pins at
+       z-index 25 (PinView), so the thread at z-index 2 runs in front of
+       the paper but behind every pin head. */
     .red-string {
         position: absolute;
         inset: 0;
@@ -356,14 +361,8 @@
         height: 100%;
         overflow: visible;
         pointer-events: none;
-        z-index: 1;
-        filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.35));
-    }
-
-    /* Pins ride on a higher Z-plane than the thread: the wrappers (and
-       their z-index:25 pin images) stack above the z-index:1 SVG. */
-    .story-stack :global(.note-wrapper) {
         z-index: 2;
+        filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.35));
     }
 
     .red-string path {

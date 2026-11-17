@@ -28,7 +28,16 @@
     ).toFixed(1);
 </script>
 
-<!-- Recolorable pushpin, see Pin.svelte -->
+<!-- Recolorable pushpin, see Pin.svelte. The jitter/hover transform
+     lives on the .paper-layer and the .pin-layer (identical transforms)
+     instead of on .note-wrapper itself, so wrapper children keep their
+     own z-index in the page's stacking context — that lets overlays
+     (e.g. the red thread SVG) sit above the paper but below the pins. -->
+<!-- Recolorable pushpin, see Pin.svelte. The jitter/hover transform
+     lives on the .paper-layer and the .pin-layer (identical transforms)
+     instead of on .note-wrapper itself, so wrapper children keep their
+     own z-index in the page's stacking context — that lets overlays
+     (e.g. the red thread SVG) sit above the paper but below the pins. -->
 <div
     class="note-wrapper {extraClass}"
     style:--note-width={width}
@@ -37,35 +46,42 @@
     style:--x-off="{randomX}vw"
     style:--y-off="{randomY}vh"
 >
-    {#if pin}
-        {#if pinLayout === "corners"}
-            <!-- Both instances share the Pin's tint filter id; the first
-                 definition in the DOM wins, and they are identical anyway. -->
-            <PinView {pin} x="18%" />
-            <PinView {pin} x="82%" />
-        {:else}
-            <PinView {pin} />
-        {/if}
-    {/if}
+    <div class="paper-layer">
+        <div
+            class="paper"
+            class:variant-sticky={variant === "sticky"}
+            class:variant-lined={variant === "lined"}
+            style:--paper-color={color}
+        >
+            {#if variant === "lined"}
+                <div class="holes-strip" aria-hidden="true">
+                    {#each Array(6) as _}
+                        <span class="hole"></span>
+                    {/each}
+                </div>
+            {/if}
 
-    <div
-        class="paper"
-        class:variant-sticky={variant === "sticky"}
-        class:variant-lined={variant === "lined"}
-        style:--paper-color={color}
-    >
-        {#if variant === "lined"}
-            <div class="holes-strip" aria-hidden="true">
-                {#each Array(6) as _}
-                    <span class="hole"></span>
-                {/each}
+            <div class="content" class:lined-content={variant === "lined"}>
+                <slot />
             </div>
-        {/if}
-
-        <div class="content" class:lined-content={variant === "lined"}>
-            <slot />
         </div>
     </div>
+
+    {#if pin}
+        <!-- Pins live in their own layer carrying the SAME jitter/hover
+             transform as .paper-layer, so they stay glued to the paper
+             while remaining above the red thread (z-index 2). -->
+        <div class="pin-layer">
+            {#if pinLayout === "corners"}
+                <!-- Both instances share the Pin's tint filter id; the first
+                     definition in the DOM wins, and they are identical anyway. -->
+                <PinView {pin} x="18%" />
+                <PinView {pin} x="82%" />
+            {:else}
+                <PinView {pin} />
+            {/if}
+        </div>
+    {/if}
 </div>
 
 <style>
@@ -73,16 +89,40 @@
         position: relative;
         width: var(--note-width);
         max-width: 100%;
-        transform: rotate(var(--base-rot)) translate(var(--x-off), var(--y-off));
-        transition: transform 0.28s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         box-sizing: border-box;
         display: inline-block;
     }
 
-    .note-wrapper:hover {
+    /* The jitter/hover transform is shared by the paper layer and the
+       pins so they always move together (see PinView for the pin side). */
+    .paper-layer {
+        position: relative;
+        z-index: 1;
+        transform: rotate(var(--base-rot)) translate(var(--x-off), var(--y-off));
+        transition: transform 0.28s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .note-wrapper:hover .paper-layer {
         transform: rotate(var(--hover-rot))
             translate(var(--x-off), var(--y-off)) scale(1.025);
         z-index: 20;
+    }
+
+    /* Pin layer: full-size sibling of the paper layer, transformed
+       identically so pins rotate about the note's center (not their own)
+       and inherit the vw/vh jitter offsets the paper gets. */
+    .pin-layer {
+        position: absolute;
+        inset: 0;
+        z-index: 25;
+        pointer-events: none;
+        transform: rotate(var(--base-rot)) translate(var(--x-off), var(--y-off));
+        transition: transform 0.28s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .note-wrapper:hover .pin-layer {
+        transform: rotate(var(--hover-rot))
+            translate(var(--x-off), var(--y-off)) scale(1.025);
     }
 
     .paper {
