@@ -2,11 +2,21 @@
   import type { Pin } from "./pin";
 
   // Renders a Pin instance; see pin.ts for how to create one.
-  // `x` places the pin *head* horizontally (CSS left value) so a note
-  // can carry several pins, e.g. x="18%" / x="82%" for corner pins.
-  // The margin shift compensates for the artwork's off-center head.
+  // By default `x` places the pin *head* horizontally (CSS left value)
+  // and `y` is the image's top edge. With `centered`, the artwork is
+  // centered on the x/y point instead — e.g. a pin seated mid-edge of
+  // a note: x="5px" y="50%" centered.
   export let pin: Pin;
   export let x: string = "50%";
+  export let y: string = "-16px";
+  export let centered = false;
+
+  // Vertical compensation for the artwork's off-center head, used when
+  // `centered` (mirrors the margin-left shift below, but for the head's
+  // height fraction: 0.5 - anchor.y of the displayed artwork height).
+  $: headLift = (
+    (0.5 - pin.anchor.y) * pin.size * (pin.artwork.height / pin.artwork.width)
+  ).toFixed(1);
 </script>
 
 <svg
@@ -52,11 +62,14 @@
 <img
   src={pin.src}
   class="pin-img"
+  class:centered={centered}
   width={pin.artwork.width}
   height={pin.artwork.height}
   style:width="{pin.size}px"
+  style:top={centered ? "50%" : y}
   style:left={x}
   style:margin-left="{((0.5 - pin.anchor.x) * pin.size).toFixed(1)}px"
+  style:margin-top={centered ? "{headLift}px" : undefined}
   style:filter="url(#{pin.filterId})"
   data-anchor-x={pin.anchor.x}
   data-anchor-y={pin.anchor.y}
@@ -75,5 +88,11 @@
     height: auto;
     z-index: 25;
     pointer-events: none;
+  }
+
+  /* Centered mode: the artwork is centered on the x/y point (the head
+     is then nudged onto that point by the margin compensations). */
+  .pin-img.centered {
+    transform: translate(-50%, -50%);
   }
 </style>

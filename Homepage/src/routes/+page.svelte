@@ -104,8 +104,10 @@
             const dy = b.y - a.y;
             // Loose thread: leave each pin downwards, dip below the
             // straight line by `sag`, and rise back into the next pin.
+            // The bow is small so the curve hugs the notes' margin strip
+            // instead of swinging out into the bare corkboard.
             const sag = Math.min(90, Math.max(24, Math.abs(dy) * 0.3));
-            const bx = 38;
+            const bx = 10;
             threadPaths.push(
                 `M ${a.x.toFixed(1)} ${a.y.toFixed(1)} ` +
                     `C ${(a.x - bx).toFixed(1)} ${(a.y + dy * 0.25 + sag).toFixed(1)}, ` +
@@ -116,12 +118,15 @@
     }
 
     onMount(() => {
-        // Stagger the notes horizontally to make them look naturally
-        // scattered on the board before measuring the string.
+        // Stagger the notes horizontally into a zig-zag: even notes lean
+        // right, odd notes lean left (random magnitude), so the column
+        // reads as deliberately staggered instead of random noise.
         storyStackEl
             ?.querySelectorAll<HTMLElement>(".note-wrapper")
-            .forEach((el) => {
-                el.style.marginLeft = `${Math.round(Math.random() * 50 - 25)}px`;
+            .forEach((el, i) => {
+                const sign = i % 2 === 0 ? -1 : 1;
+                const mag = Math.round(Math.random() * 25 + 8);
+                el.style.marginLeft = `${sign * mag}px`;
             });
 
         measureThread();
@@ -215,7 +220,7 @@
                 color={storyGreen}
                 pin={MainPin}
                 pinLayout="corners"
-                width="min(480px, 94%)"
+                width="min(560px, 100%)"
             >
                 <h2>My story</h2>
             </PaperNote>

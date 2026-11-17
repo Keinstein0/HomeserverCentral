@@ -73,10 +73,14 @@
              while remaining above the red thread (z-index 2). -->
         <div class="pin-layer">
             {#if pinLayout === "corners"}
-                <!-- Both instances share the Pin's tint filter id; the first
-                     definition in the DOM wins, and they are identical anyway. -->
-                <PinView {pin} x="18%" />
-                <PinView {pin} x="82%" />
+                <!-- Pins sit 5px inside the note's left/right edges,
+                     vertically centered, so the thread between notes hangs
+                     along the margins instead of over the text. Both
+                     instances share the Pin's tint filter id; the first
+                     definition in the DOM wins, and they are identical
+                     anyway. -->
+                <PinView {pin} x="5px" y="50%" centered />
+                <PinView {pin} x="calc(100% - 5px)" y="50%" centered />
             {:else}
                 <PinView {pin} />
             {/if}
@@ -137,7 +141,7 @@
 
     /* Sticky Variant */
     .variant-sticky {
-        padding: 2.2rem 1.6rem 1.6rem;
+        padding: 1.4rem 1.6rem 1.6rem;
         background-image: linear-gradient(
             150deg,
             rgba(255, 255, 255, 0.32) 0%,
@@ -155,7 +159,7 @@
     .variant-lined {
         display: flex;
         flex-direction: row;
-        padding: 1.6rem 1.4rem 1.4rem 0.6rem;
+        padding: 1.2rem 1.4rem 1.4rem 0.6rem;
         border-radius: 4px;
         background-image: repeating-linear-gradient(
             to bottom,
