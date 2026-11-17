@@ -6,6 +6,7 @@
     import me from "../assets/images/me.jpg";
     import { Pin } from "../components/pin/pin";
     import NixieAgeCounter from "../components/nixie/NixieAgeCounter.svelte";
+    import { onMount } from "svelte";
     const MainPin = new Pin("#ff0000");
 
     // Shared green for the "My story" note and its timeline entries.
@@ -39,6 +40,123 @@
             text: "A tiny game made of copy-pasted tutorials. It was terrible. I was hooked anyway.",
         },
     ];
+
+    // Red thread tying the story notes' left pin heads together. The
+    // sag curves are measured from the live DOM — the pins ride along
+    // with each note's random jitter and rotation — then drawn as SVG
+    // curves that hang with slack between the notes, like thread
+    // obeying gravity on a real corkboard.
+    let storyStackEl: HTMLElement | undefined;
+    let threadBox = { w: 0, h: 0 };
+    let threadPaths: string[] = [];
+
+    function measureThread() {
+        if (!storyStackEl) return;
+        const stack = storyStackEl.getBoundingClientRect();
+        threadBox = { w: stack.width, h: stack.height };
+
+        // Anchor the thread to each note's left pin *head*. The head
+        // sits off-center inside the pin artwork (see pin.ts anchor)
+        // and the whole note is tilted by --base-rot, so the head is
+        // derived from the pin image's live box, its anchor fractions
+        // and the wrapper's rotation — exact for any jitter/rotation.
+        const pins: { x: number; y: number }[] = [];
+        for (const wrapper of storyStackEl.querySelectorAll(".note-wrapper")) {
+            const img = wrapper.querySelector<HTMLImageElement>("img.pin-img");
+            if (!img) continue;
+            const rect = img.getBoundingClientRect();
+            const ax = parseFloat(img.dataset.anchorX ?? "0.5");
+            const ay = parseFloat(img.dataset.anchorY ?? "0.5");
+            const size = img.clientWidth; // layout px — unaffected by rotation
+            const h = (size * img.naturalHeight) / img.naturalWidth;
+            // Head offset from the image center in local px…
+            const dx = ax * size - size / 2;
+            const dy = ay * h - h / 2;
+            // …rotated by the wrapper's tilt, since the pin inherits it.
+            const rot =
+                (parseFloat(
+                    wrapper.style.getPropertyValue("--base-rot") || "0",
+                ) *
+                    Math.PI) /
+                180;
+            pins.push({
+                x:
+                    rect.left +
+                    rect.width / 2 +
+                    Math.cos(rot) * dx -
+                    Math.sin(rot) * dy -
+                    stack.left,
+                y:
+                    rect.top +
+                    rect.height / 2 +
+                    Math.sin(rot) * dx +
+                    Math.cos(rot) * dy -
+                    stack.top,
+            });
+        }
+
+        threadPaths = [];
+        for (let i = 0; i + 1 < pins.length; i++) {
+            const a = pins[i];
+            const b = pins[i + 1];
+            const dy = b.y - a.y;
+            // Loose thread: leave each pin downwards, dip below the
+            // straight line by `sag`, and rise back into the next pin.
+            const sag = Math.min(90, Math.max(24, Math.abs(dy) * 0.3));
+            const bx = 38;
+            threadPaths.push(
+                `M ${a.x.toFixed(1)} ${a.y.toFixed(1)} ` +
+                    `C ${(a.x - bx).toFixed(1)} ${(a.y + dy * 0.25 + sag).toFixed(1)}, ` +
+                    `${(b.x - bx).toFixed(1)} ${(b.y - dy * 0.25 + sag).toFixed(1)}, ` +
+                    `${b.x.toFixed(1)} ${b.y.toFixed(1)}`,
+            );
+        }
+    }
+
+    onMount(() => {
+        // Stagger the notes horizontally to make them look naturally
+        // scattered on the board before measuring the string.
+        storyStackEl
+            ?.querySelectorAll<HTMLElement>(".note-wrapper")
+            .forEach((el) => {
+                el.style.marginLeft = `${Math.round(Math.random() * 50 - 25)}px`;
+            });
+
+        measureThread();
+        // The board keeps settling for a few frames after mount
+        // (webfont swap, image decode, scrollbar) and a ResizeObserver
+        // only sees size changes, so re-measure on every animation
+        // frame until the geometry holds still for several in a row.
+        let last = "";
+        let stable = 0;
+        let frames = 0;
+        let raf = 0;
+        const settle = () => {
+            measureThread();
+            const sig = `${threadBox.w}x${threadBox.h}|${threadPaths.join("|")}`;
+            stable = sig === last ? stable + 1 : 0;
+            last = sig;
+            frames += 1;
+            if (stable < 4 && frames < 180) raf = requestAnimationFrame(settle);
+        };
+        raf = requestAnimationFrame(settle);
+        // Belt and braces for fonts that land after the settle window.
+        document.fonts?.ready.then(measureThread);
+        const observer =
+            typeof ResizeObserver === "undefined"
+                ? undefined
+                : new ResizeObserver(measureThread);
+        if (observer) {
+            observer.observe(storyStackEl);
+            for (const wrapper of storyStackEl.querySelectorAll(".note-wrapper")) {
+                observer.observe(wrapper);
+            }
+        }
+        return () => {
+            cancelAnimationFrame(raf);
+            observer?.disconnect();
+        };
+    });
 </script>
 
 <main class="board">
@@ -88,18 +206,24 @@
             />
         </div>
 
-        <div class="story-stack">
-            <PaperNote color={storyGreen} pin={MainPin} width="min(480px, 94%)">
+        <div class="story-stack" bind:this={storyStackEl}>
+            <PaperNote
+                color={storyGreen}
+                pin={MainPin}
+                pinLayout="corners"
+                width="min(480px, 94%)"
+            >
                 <h2>My story</h2>
             </PaperNote>
 
             <div class="story-timeline">
-                <div class="timeline-string" aria-hidden="true"></div>
                 {#each storyEvents as event}
                     <PaperNote
                         color={storyGreen}
                         pin={MainPin}
                         width="min(480px, 100%)"
+                        maxOffset={1.5}
+                        pinLayout="corners"
                     >
                         <p class="event-date">{event.date}</p>
                         <h3>{event.title}</h3>
@@ -107,6 +231,16 @@
                     </PaperNote>
                 {/each}
             </div>
+
+            <svg
+                class="red-string"
+                viewBox="0 0 {threadBox.w} {threadBox.h}"
+                aria-hidden="true"
+            >
+                {#each threadPaths as d}
+                    <path {d} />
+                {/each}
+            </svg>
         </div>
     </Grid>
 </main>
@@ -122,7 +256,7 @@
         margin: 0;
         min-height: 100vh;
         background-image: url("./../assets/cardboard.webp");
-        background-size: cover;
+        background-size: repeat;
         background-position: center;
         background-repeat: repeat-y;
         background-color: #2b221a;
@@ -173,9 +307,10 @@
         margin: 0;
     }
 
-    /* Story stack: header note + twine timeline. Spans the full row by
+    /* Story stack: header note + pinned timeline. Spans the full row by
        default; parked in the third column once the grid has three. */
     .story-stack {
+        position: relative;
         display: flex;
         flex-direction: column;
         align-items: center;
@@ -201,23 +336,6 @@
         width: 100%;
     }
 
-    .timeline-string {
-        position: absolute;
-        left: 50%;
-        top: -2.25rem;
-        bottom: -1.25rem;
-        width: 3px;
-        border-radius: 2px;
-        transform: translateX(-50%) rotate(0.4deg);
-        background: linear-gradient(
-            to bottom,
-            rgba(242, 226, 189, 0),
-            rgba(242, 226, 189, 0.65) 3%,
-            rgba(242, 226, 189, 0.65) 97%,
-            rgba(242, 226, 189, 0)
-        );
-    }
-
     /* Date line above each event title. Kept more specific than
        PaperNote's generic `.content p` rule so it wins the cascade. */
     .story-timeline p.event-date {
@@ -226,5 +344,32 @@
         text-transform: uppercase;
         opacity: 0.72;
         margin-bottom: 0.35rem;
+    }
+
+    /* Red thread: an SVG overlay strung behind the notes. The paths are
+       measured from the live pin positions (see measureThread), so
+       every loop ties a left pin to the next with visible slack. */
+    .red-string {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        overflow: visible;
+        pointer-events: none;
+        z-index: 1;
+        filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.35));
+    }
+
+    /* Pins ride on a higher Z-plane than the thread: the wrappers (and
+       their z-index:25 pin images) stack above the z-index:1 SVG. */
+    .story-stack :global(.note-wrapper) {
+        z-index: 2;
+    }
+
+    .red-string path {
+        fill: none;
+        stroke: rgba(178, 34, 34, 0.9);
+        stroke-width: 2;
+        stroke-linecap: round;
     }
 </style>

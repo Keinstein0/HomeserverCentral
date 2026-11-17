@@ -5,6 +5,9 @@
     export let variant: "sticky" | "lined" = "sticky";
     export let color = "#fff677";
     export let pin: Pin | undefined = undefined;
+    // "center": one pin top-center (default). "corners": two pins near
+    // the top corners — e.g. for threads strung between the left pins.
+    export let pinLayout: "center" | "corners" = "center";
     export let width = "100%";
     export let maxRotation = 4;
     export let maxOffset = 2;
@@ -35,7 +38,14 @@
     style:--y-off="{randomY}vh"
 >
     {#if pin}
-        <PinView {pin} />
+        {#if pinLayout === "corners"}
+            <!-- Both instances share the Pin's tint filter id; the first
+                 definition in the DOM wins, and they are identical anyway. -->
+            <PinView {pin} x="18%" />
+            <PinView {pin} x="82%" />
+        {:else}
+            <PinView {pin} />
+        {/if}
     {/if}
 
     <div

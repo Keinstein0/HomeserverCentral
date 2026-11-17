@@ -2,7 +2,11 @@
   import type { Pin } from "./pin";
 
   // Renders a Pin instance; see pin.ts for how to create one.
+  // `x` places the pin *head* horizontally (CSS left value) so a note
+  // can carry several pins, e.g. x="18%" / x="82%" for corner pins.
+  // The margin shift compensates for the artwork's off-center head.
   export let pin: Pin;
+  export let x = "50%";
 </script>
 
 <svg
@@ -48,8 +52,14 @@
 <img
   src={pin.src}
   class="pin-img"
+  width={pin.artwork.width}
+  height={pin.artwork.height}
   style:width="{pin.size}px"
+  style:left={x}
+  style:margin-left="{((0.5 - pin.anchor.x) * pin.size).toFixed(1)}px"
   style:filter="url(#{pin.filterId}) drop-shadow(0 4px 6px rgba(0, 0, 0, 0.45))"
+  data-anchor-x={pin.anchor.x}
+  data-anchor-y={pin.anchor.y}
   alt="Pushpin"
   aria-hidden="true"
 />
