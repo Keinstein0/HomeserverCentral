@@ -4,6 +4,7 @@
     import Grid from "../components/Grid.svelte";
 
     import me from "../assets/images/me.jpg";
+    import github from "../assets/images/github.png";
     import { Pin } from "../components/pin/pin";
     import NixieAgeCounter from "../components/nixie/NixieAgeCounter.svelte";
     import { onMount } from "svelte";
@@ -271,6 +272,34 @@
                 >
             </a>
         </PaperNote>
+
+        <!-- GitHub logo → your GitHub profile. (The raw <img> with a
+             relative src 404s in Vite — assets must be imported.) -->
+        <!-- GitHub sticker + the note it pins: ONE grid item so they
+             overlap as a unit — the note slides slightly under the
+             sticker, so the LinkPin on the note's top edge reads as
+             pinning both the sticker and the note. -->
+        <div class="github-tile">
+            <a
+                class="github-link"
+                href="https://github.com/keinstein0"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Link to my GitHub account"
+            >
+                <img src={github} alt="Link to my GitHub account" />
+            </a>
+
+            <a class="projects-link" href="https://github.com/keinstein0">
+                <PaperNote
+                    color="#ded9d9"
+                    hoverColor="#cfe4ff"
+                    pin={LinkPin}
+                    maxOffset={0}
+                    ><h3 style="color:#0000af">My github</h3></PaperNote
+                >
+            </a>
+        </div>
     </Grid>
 </main>
 
@@ -279,6 +308,15 @@
         font-family: "handwritten";
         src: url("./../assets/dreaming-outloud-pro-regular.otf")
             format("opentype");
+    }
+
+    :global(html) {
+        /* Overscrolling past the page edges exposes the root background —
+           match the body's cardboard base color so there's no white flash. */
+        background-color: #2b221a;
+        /* Nothing above the page worth scrolling to — disable the
+           rubber-band bounce entirely (mobile + trackpad overscroll). */
+        overscroll-behavior: none;
     }
 
     :global(body) {
@@ -348,6 +386,63 @@
         text-decoration: none;
         color: inherit;
         cursor: pointer;
+    }
+
+    /* GitHub logo tile: centered in its grid cell, sized like a small
+       board sticker, with a subtle lift on hover to match the notes. */
+    .github-link {
+        justify-self: center;
+    }
+
+    .github-link img {
+        display: block;
+        width: 210px;
+        height: auto;
+        transform: rotate(15deg);
+        filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.25));
+        transition:
+            transform 0.28s cubic-bezier(0.175, 0.885, 0.32, 1.275),
+            filter 0.28s ease;
+    }
+
+    .github-link:hover img {
+        transform: rotate(10deg) scale(1.04);
+        filter: drop-shadow(0 4px 7px rgba(0, 0, 0, 0.3));
+    }
+
+    /* GitHub sticker + pinned note: one flex column. The sticker sits on
+       a higher z-plane than the note's paper, so the note slides under
+       it while the note's pin (z-index 25) stays above — one pin, two
+       layers. The negative margin is how much the note tucks under. */
+    .github-tile {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-self: center;
+        width: min(280px, 100%);
+    }
+
+    .github-tile .github-link {
+        position: relative;
+        z-index: 2;
+    }
+
+    .github-tile :global(.note-wrapper) {
+        width: 100%;
+        margin-top: -34px;
+    }
+
+    /* Unified hover: whichever of the two you hover, the tile lifts as a
+       unit. The sticker rises just above the note's hovered paper layer
+       (z-index 20) while staying below the note's pin (z-index 25), so
+       the "one pin pins both" illusion never breaks. Hovering the sticker
+       also tints the note — same as hovering the note itself. */
+    .github-tile:hover .github-link {
+        z-index: 22;
+    }
+
+    .github-tile:hover :global(.note-wrapper .paper) {
+        background-color: #cfe4ff;
     }
 
     .main-title {
