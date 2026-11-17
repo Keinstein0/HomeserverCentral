@@ -8,6 +8,7 @@
     import NixieAgeCounter from "../components/nixie/NixieAgeCounter.svelte";
     import { onMount } from "svelte";
     const MainPin = new Pin("#ff0000");
+    const LinkPin = new Pin("#8080ff");
 
     // Shared green for the "My story" note and its timeline entries.
     const storyGreen = "#bfe8a8";
@@ -186,7 +187,7 @@
         </PaperNote>
     </header>
 
-    <Grid gap="2.5rem 2.25rem">
+    <Grid gap="0 2.25rem">
         <PhotoNote src={me} alt="a picture of me" pin={MainPin}>
             <h2>that's me :D</h2>
             <p style="font-size: 10px;">
@@ -251,6 +252,25 @@
                 {/each}
             </svg>
         </div>
+
+        <PaperNote color="#e8da89" pin={MainPin}>
+            <h2>My projects:</h2>
+            <p style="font-size: 20px;">
+                Take a look at my projects on my GitHub account or the dedicated
+                page here:
+                <br />
+            </p>
+
+            <a class="projects-link" href="https://example.com">
+                <PaperNote
+                    color="#ded9d9"
+                    hoverColor="#cfe4ff"
+                    pin={LinkPin}
+                    maxOffset={0}
+                    ><h3 style="color:#0000af">My projects</h3></PaperNote
+                >
+            </a>
+        </PaperNote>
     </Grid>
 </main>
 
@@ -312,6 +332,24 @@
         }
     }
 
+    /* Row gap is 0 on the grid (see the Grid gap prop), so vertical
+       spacing between grid items comes from their own bottom margins —
+       identical visuals, but implicit rows stay free for the story
+       stack's long span. The stack itself is excluded: it spans many
+       rows and must not contribute spacing inside them. */
+    :global(.grid-container > *:not(.story-stack)) {
+        margin-bottom: 2.5rem;
+    }
+
+    /* The clickable inner "My projects" note: neutral link styling — the
+       hover affordance comes from PaperNote's hoverColor tint. */
+    .projects-link {
+        display: block;
+        text-decoration: none;
+        color: inherit;
+        cursor: pointer;
+    }
+
     .main-title {
         font-size: 3rem;
         letter-spacing: 1px;
@@ -334,6 +372,12 @@
     @media (min-width: 1000px) {
         .story-stack {
             grid-column: 3;
+            /* Span "everything below" so future side components can flow
+               down columns 1–2 beside it. Empty implicit rows cost nothing
+               because the row gap is 0 — spacing comes from item margins.
+               The span only needs to be big, not exact. */
+            grid-row: 2 / span 50;
+            align-self: start;
         }
     }
 

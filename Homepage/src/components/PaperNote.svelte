@@ -4,6 +4,9 @@
 
     export let variant: "sticky" | "lined" = "sticky";
     export let color = "#fff677";
+    // Optional paper color on hover — set it on clickable notes so users
+    // notice they can be clicked. Empty = no hover tint.
+    export let hoverColor = "";
     export let pin: Pin | undefined = undefined;
     // "center": one pin top-center (default). "corners": two pins near
     // the top corners — e.g. for threads strung between the left pins.
@@ -41,6 +44,7 @@
 <div
     class="note-wrapper {extraClass}"
     style:--note-width={width}
+    style:--paper-hover-color={hoverColor || undefined}
     style:--base-rot="{randomRotate}deg"
     style:--hover-rot="{hoverRotate}deg"
     style:--x-off="{randomX}vw"
@@ -133,10 +137,17 @@
         position: relative;
         box-sizing: border-box;
         background-color: var(--paper-color);
+        transition: background-color 0.25s ease;
         width: 100%;
         border-radius: 2px 3px 6px 3px;
         border-top: 1px solid rgba(255, 255, 255, 0.45);
         border-left: 1px solid rgba(255, 255, 255, 0.25);
+    }
+
+    /* Clickable notes (see the hoverColor prop) tint on hover; notes
+       without a hover color fall back to their normal paper color. */
+    .note-wrapper:hover .paper {
+        background-color: var(--paper-hover-color, var(--paper-color));
     }
 
     /* Sticky Variant */
