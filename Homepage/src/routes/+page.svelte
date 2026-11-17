@@ -7,6 +7,38 @@
     import { Pin } from "../components/pin/pin";
     import NixieAgeCounter from "../components/nixie/NixieAgeCounter.svelte";
     const MainPin = new Pin("#ff0000");
+
+    // Shared green for the "My story" note and its timeline entries.
+    const storyGreen = "#bfe8a8";
+
+    // Demo story events; the timeline renders them most recent first.
+    const storyEvents = [
+        {
+            date: "November 2026",
+            title: "This website goes live",
+            text: "Built my own homepage with Svelte, Docker and nginx — you're looking at it, and it runs on my homeserver.",
+        },
+        {
+            date: "June 2026",
+            title: "First homeserver",
+            text: "Rescued a used mini PC from a flea market. It now runs containers for the whole family and hasn't slept since.",
+        },
+        {
+            date: "August 2024",
+            title: "Started the IMS program",
+            text: "Enrolled at the Alte Kanti and Berufsbildung Baden — turning ideas into finished products as a daily job.",
+        },
+        {
+            date: "December 2023",
+            title: "Hello, Linux",
+            text: "Wiped my laptop and installed Fedora. Broke it twice in the first week — and fixed it both times.",
+        },
+        {
+            date: "September 2022",
+            title: "First line of code",
+            text: "A tiny game made of copy-pasted tutorials. It was terrible. I was hooked anyway.",
+        },
+    ];
 </script>
 
 <main class="board">
@@ -56,10 +88,25 @@
             />
         </div>
 
-        <div class="my-story">
-            <PaperNote color="#e8da89" pin={MainPin}>
+        <div class="story-stack">
+            <PaperNote color={storyGreen} pin={MainPin} width="min(480px, 94%)">
                 <h2>My story</h2>
             </PaperNote>
+
+            <div class="story-timeline">
+                <div class="timeline-string" aria-hidden="true"></div>
+                {#each storyEvents as event}
+                    <PaperNote
+                        color={storyGreen}
+                        pin={MainPin}
+                        width="min(480px, 100%)"
+                    >
+                        <p class="event-date">{event.date}</p>
+                        <h3>{event.title}</h3>
+                        <p>{event.text}</p>
+                    </PaperNote>
+                {/each}
+            </div>
         </div>
     </Grid>
 </main>
@@ -126,21 +173,58 @@
         margin: 0;
     }
 
-    .note-textarea {
-        width: 100%;
-        margin-top: 0.6rem;
-        padding: 0.4rem;
-        box-sizing: border-box;
-        border: 1px dashed rgba(0, 0, 0, 0.35);
-        background: rgba(255, 255, 255, 0.4);
-        border-radius: 4px;
-        font-family: inherit;
-        font-size: 1rem;
-        resize: vertical;
+    /* Story stack: header note + twine timeline. Spans the full row by
+       default; parked in the third column once the grid has three. */
+    .story-stack {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        grid-column: 1 / -1;
     }
 
-    .note-textarea:focus {
-        outline: none;
-        background: rgba(255, 255, 255, 0.7);
+    /* Three columns fit once 3 × 280px min + 2 × 2.25rem gaps + board
+       padding do — 1000px viewport leaves room for the scrollbar.
+       Below that the stack keeps its full-width row under the counter. */
+    @media (min-width: 1000px) {
+        .story-stack {
+            grid-column: 3;
+        }
+    }
+
+    .story-timeline {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 2.25rem;
+        margin-top: 3rem;
+        width: 100%;
+    }
+
+    .timeline-string {
+        position: absolute;
+        left: 50%;
+        top: -2.25rem;
+        bottom: -1.25rem;
+        width: 3px;
+        border-radius: 2px;
+        transform: translateX(-50%) rotate(0.4deg);
+        background: linear-gradient(
+            to bottom,
+            rgba(242, 226, 189, 0),
+            rgba(242, 226, 189, 0.65) 3%,
+            rgba(242, 226, 189, 0.65) 97%,
+            rgba(242, 226, 189, 0)
+        );
+    }
+
+    /* Date line above each event title. Kept more specific than
+       PaperNote's generic `.content p` rule so it wins the cascade. */
+    .story-timeline p.event-date {
+        font-size: 0.95rem;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+        opacity: 0.72;
+        margin-bottom: 0.35rem;
     }
 </style>
