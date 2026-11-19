@@ -8,6 +8,7 @@
     import { Pin } from "../components/pin/pin";
     import NixieAgeCounter from "../components/nixie/NixieAgeCounter.svelte";
     import { onMount } from "svelte";
+    import modernpainterdemo from "../assets/images/modernpainterdemo.gif";
     const MainPin = new Pin("#ff0000");
     const LinkPin = new Pin("#8080ff");
 
@@ -19,27 +20,32 @@
         {
             date: "November 2026",
             title: "This website goes live",
-            text: "Built my own homepage with Svelte, Docker and nginx — you're looking at it, and it runs on my homeserver.",
+            text: "Migrated my personal portfolio site to my homeserver, also with a new, less crappy design",
         },
         {
-            date: "June 2026",
-            title: "First homeserver",
-            text: "Rescued a used mini PC from a flea market. It now runs containers for the whole family and hasn't slept since.",
+            date: "May 2025",
+            title: "Won first place at FLL OAC World Final",
+            text: "My team and I were able to qualify to the world final in South Africa and managed to win the overall first place",
         },
         {
             date: "August 2024",
             title: "Started the IMS program",
-            text: "Enrolled at the Alte Kanti and Berufsbildung Baden — turning ideas into finished products as a daily job.",
+            text: "Got into IMS and immediately started on my most long term project: SmartPainter",
         },
         {
-            date: "December 2023",
-            title: "Hello, Linux",
-            text: "Wiped my laptop and installed Fedora. Broke it twice in the first week — and fixed it both times.",
+            date: "July 2024",
+            title: "My first internship",
+            text: "Got offered an internship at VGT in Aarau in 2024, now doing my IMS full time apprenticeship there",
         },
         {
-            date: "September 2022",
-            title: "First line of code",
-            text: "A tiny game made of copy-pasted tutorials. It was terrible. I was hooked anyway.",
+            date: "March 2024",
+            title: "First ever project on github",
+            text: "While I did code some games in webtigerjython before, this was my first ever project on my github",
+        },
+        {
+            date: "Summer 2023",
+            title: "Joined the FLL robotics team mindfactory",
+            text: "After 5 years in the cantonal program I was able to join the competition team",
         },
     ];
 
@@ -300,6 +306,46 @@
                 >
             </a>
         </div>
+
+        <div class="painter-image-note">
+            <PhotoNote
+                src={modernpainterdemo}
+                alt="a gif of smartpainter"
+                pin={MainPin}
+            >
+                <h2>That's SmartPainter</h2>
+                <p style="font-size: 10px;">
+                    in fact I was lying: its modern painter, the evolution of
+                    SPainter
+                </p>
+            </PhotoNote>
+        </div>
+
+        <PaperNote color="#e8da89" pin={MainPin}>
+            <h2>About me:</h2>
+            <p style="font-size: 20px;">
+                Hi, I'm Alexander Straub, and I'm currently enrolled in the IMS
+                program at the Alte Kanti and the Berufsbildung Baden. <br />
+                For me, the most exciting thing about computer science is
+                <b>turning ideas into finished products</b>. Does that sound
+                generic? Yes it does. But I still love seeing an idea or
+                architecture go from a piece of paper to something that actually
+                runs.
+            </p>
+        </PaperNote>
+
+        <PaperNote color="#e8da89" pin={MainPin}>
+            <h2>About me:</h2>
+            <p style="font-size: 20px;">
+                Hi, I'm Alexander Straub, and I'm currently enrolled in the IMS
+                program at the Alte Kanti and the Berufsbildung Baden. <br />
+                For me, the most exciting thing about computer science is
+                <b>turning ideas into finished products</b>. Does that sound
+                generic? Yes it does. But I still love seeing an idea or
+                architecture go from a piece of paper to something that actually
+                runs.
+            </p>
+        </PaperNote>
     </Grid>
 </main>
 
@@ -377,6 +423,12 @@
        rows and must not contribute spacing inside them. */
     :global(.grid-container > *:not(.story-stack)) {
         margin-bottom: 2.5rem;
+    }
+
+    .painter-image-note {
+        grid-column: span 2;
+        margin-left: 25%;
+        margin-right: 25%;
     }
 
     /* The clickable inner "My projects" note: neutral link styling — the
