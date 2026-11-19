@@ -20,32 +20,32 @@
         {
             date: "November 2026",
             title: "This website goes live",
-            text: "Migrated my personal portfolio site to my homeserver, also with a new, less crappy design",
+            text: "Moved my personal site over to my homeserver, with a fresh redesign that looks way better.",
         },
         {
             date: "May 2025",
-            title: "Won first place at FLL OAC World Final",
-            text: "My team and I were able to qualify to the world final in South Africa and managed to win the overall first place",
+            title: "1st place at FLL Open Africa Championship",
+            text: "Traveled all the way to South Africa with my robotics team and ended up winning 1st place overall!",
         },
         {
             date: "August 2024",
             title: "Started the IMS program",
-            text: "Got into IMS and immediately started on my most long term project: SmartPainter",
+            text: "Started IMS and immediately dove into my biggest project so far: SmartPainter.",
         },
         {
             date: "July 2024",
             title: "My first internship",
-            text: "Got offered an internship at VGT in Aarau in 2024, now doing my IMS full time apprenticeship there",
+            text: "Landed an internship at VGT in Aarau, which turned into my full-time IMS apprenticeship.",
         },
         {
             date: "March 2024",
-            title: "First ever project on github",
-            text: "While I did code some games in webtigerjython before, this was my first ever project on my github",
+            title: "First GitHub repo",
+            text: "After tinkering with little games in WebTigerJython, I finally pushed my first real project to GitHub.",
         },
         {
             date: "Summer 2023",
-            title: "Joined the FLL robotics team mindfactory",
-            text: "After 5 years in the cantonal program I was able to join the competition team",
+            title: "Joined the robotics team 'mindfactory'",
+            text: "After 5 years in the cantonal robotics course, I joined our competitive FIRST LEGO League team.",
         },
     ];
 
