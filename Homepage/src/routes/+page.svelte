@@ -14,6 +14,12 @@
 
     // Shared green for the "My story" note and its timeline entries.
     const storyGreen = "#bfe8a8";
+    // Red for story notes that reference robotics.
+    const storyRed = "#f2a9a4";
+
+    // Dedicated robotics page — not defined yet, so it points to
+    // example.com for now.
+    const roboticsUrl = "https://example.com";
 
     // Demo story events; the timeline renders them most recent first.
     const storyEvents = [
@@ -26,6 +32,7 @@
             date: "May 2025",
             title: "1st place at FLL Open Africa Championship",
             text: "Traveled all the way to South Africa with my robotics team and ended up winning 1st place overall!",
+            link: roboticsUrl,
         },
         {
             date: "August 2024",
@@ -46,6 +53,7 @@
             date: "Summer 2023",
             title: "Joined the robotics team 'mindfactory'",
             text: "After 5 years in the cantonal robotics course, I joined our competitive FIRST LEGO League team.",
+            link: roboticsUrl,
         },
     ];
 
@@ -236,7 +244,9 @@
             <div class="story-timeline">
                 {#each storyEvents as event}
                     <PaperNote
-                        color={storyGreen}
+                        color={event.link ? storyRed : storyGreen}
+                        hoverColor={event.link ? "#e8857f" : ""}
+                        link={event.link}
                         pin={MainPin}
                         width="min(480px, 100%)"
                         maxOffset={1.5}

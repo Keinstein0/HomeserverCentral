@@ -14,6 +14,9 @@
     export let width = "100%";
     export let maxRotation = 4;
     export let maxOffset = 2;
+    // Optional link: when set, the paper (and its content) becomes a
+    // clickable anchor. Pair it with hoverColor so it looks clickable.
+    export let link = "";
 
     // Extra classes forwarded onto the wrapper element (the grid item),
     // e.g. for grid placement: <PaperNote class="about-me">
@@ -36,11 +39,6 @@
      instead of on .note-wrapper itself, so wrapper children keep their
      own z-index in the page's stacking context — that lets overlays
      (e.g. the red thread SVG) sit above the paper but below the pins. -->
-<!-- Recolorable pushpin, see Pin.svelte. The jitter/hover transform
-     lives on the .paper-layer and the .pin-layer (identical transforms)
-     instead of on .note-wrapper itself, so wrapper children keep their
-     own z-index in the page's stacking context — that lets overlays
-     (e.g. the red thread SVG) sit above the paper but below the pins. -->
 <div
     class="note-wrapper {extraClass}"
     style:--note-width={width}
@@ -51,24 +49,34 @@
     style:--y-off="{randomY}vh"
 >
     <div class="paper-layer">
-        <div
-            class="paper"
-            class:variant-sticky={variant === "sticky"}
-            class:variant-lined={variant === "lined"}
-            style:--paper-color={color}
+        <!-- When `link` is set this renders as an <a> wrapping the paper;
+             otherwise it's a plain <div>. Using a single svelte:element
+             avoids splitting the anchor's open/close tags across separate
+             {#if} blocks, which Svelte's compiler rejects. -->
+        <svelte:element
+            this={link ? "a" : "div"}
+            class={link ? "note-link" : ""}
+            href={link || undefined}
         >
-            {#if variant === "lined"}
-                <div class="holes-strip" aria-hidden="true">
-                    {#each Array(6) as _}
-                        <span class="hole"></span>
-                    {/each}
-                </div>
-            {/if}
+            <div
+                class="paper"
+                class:variant-sticky={variant === "sticky"}
+                class:variant-lined={variant === "lined"}
+                style:--paper-color={color}
+            >
+                {#if variant === "lined"}
+                    <div class="holes-strip" aria-hidden="true">
+                        {#each Array(6) as _}
+                            <span class="hole"></span>
+                        {/each}
+                    </div>
+                {/if}
 
-            <div class="content" class:lined-content={variant === "lined"}>
-                <slot />
+                <div class="content" class:lined-content={variant === "lined"}>
+                    <slot />
+                </div>
             </div>
-        </div>
+        </svelte:element>
     </div>
 
     {#if pin}
@@ -99,6 +107,14 @@
         max-width: 100%;
         box-sizing: border-box;
         display: inline-block;
+    }
+
+    /* Anchor wrapper for linked notes: the paper (and its content) sit
+       inside it; links must not restyle the text or underline it. */
+    .note-link {
+        display: block;
+        color: inherit;
+        text-decoration: none;
     }
 
     /* The jitter/hover transform is shared by the paper layer and the
