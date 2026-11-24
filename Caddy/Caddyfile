@@ -121,9 +121,17 @@
 		reverse_proxy status-api:5001
 	}
 
+	# Error pages: only 401/403/404 have static pages in the Homepage bundle.
+	# Other codes (405, 502, ...) must NOT be rewritten to /{code}.html — the
+	# proxy hop would hit the SPA-less file_server and return 200 with
+	# index.html, masking the real error. `respond` preserves the true status.
 	handle_errors {
-		rewrite * /{err.status_code}.html
-		reverse_proxy homepage:80
+		@known_error `{err.status_code} == 401 || {err.status_code} == 403 || {err.status_code} == 404`
+		handle @known_error {
+			rewrite * /{err.status_code}.html
+			reverse_proxy homepage:80
+		}
+		respond "Error {err.status_code}" {err.status_code}
 	}
 }
 
@@ -186,8 +194,15 @@
 		reverse_proxy homepage:80
 	}
 
+	# Same pattern as the status site: only 401/403/404 rewrite to a static
+	# error page; all other statuses must keep their true status code instead
+	# of returning 200 with index.html from the homepage proxy hop.
 	handle_errors {
-		rewrite * /{err.status_code}.html
-		reverse_proxy homepage:80
+		@known_error `{err.status_code} == 401 || {err.status_code} == 403 || {err.status_code} == 404`
+		handle @known_error {
+			rewrite * /{err.status_code}.html
+			reverse_proxy homepage:80
+		}
+		respond "Error {err.status_code}" {err.status_code}
 	}
 }
