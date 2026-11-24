@@ -545,7 +545,7 @@
     .git-activity-counter-container {
         justify-self: center;
         width: 100%;
-        max-width: 580px;
+        max-width: 720px;
     }
 
     /* Only span two columns once the grid actually has two columns
