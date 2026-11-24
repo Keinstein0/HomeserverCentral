@@ -21,6 +21,128 @@
     // example.com for now.
     const roboticsUrl = "https://example.com";
 
+    type TechLink = { label: string; url: string; sep?: string };
+
+    const techCategories: {
+        title: string;
+        lines: TechLink[][];
+    }[] = [
+        {
+            title: "01 // WORKBENCH",
+            lines: [
+                [{ label: "Fedora Linux", url: "https://fedoraproject.org/" }],
+                [{ label: "VS Code", url: "https://code.visualstudio.com/" }],
+                [{ label: "Cherry Studio", url: "https://www.cherry-ai.com/" }],
+                [{ label: "Element", url: "https://element.io/" }],
+            ],
+        },
+        {
+            title: "02 // AGENTS",
+            lines: [
+                [
+                    {
+                        label: "MCP",
+                        url: "https://modelcontextprotocol.io/",
+                    },
+                    { label: "A2A", url: "https://a2a-protocol.org/" },
+                ],
+                [{ label: "Cline", url: "https://cline.bot/" }],
+                [{ label: "OpenRouter", url: "https://openrouter.ai/" }],
+            ],
+        },
+        {
+            title: "03 // CORE & WEB",
+            lines: [
+                [
+                    {
+                        label: "C#",
+                        url: "https://dotnet.microsoft.com/languages/csharp",
+                    },
+                    {
+                        label: "(ASP.NET, EF, AOT, MonoGame)",
+                        url: "https://dotnet.microsoft.com/languages/csharp",
+                        sep: "",
+                    },
+                ],
+                [
+                    {
+                        label: "Python",
+                        url: "https://www.python.org/",
+                    },
+                    {
+                        label: "(Flask, Pygame, ML)",
+                        url: "https://www.python.org/",
+                        sep: "",
+                    },
+                ],
+                [
+                    { label: "Astro", url: "https://astro.build/" },
+                    { label: "Svelte", url: "https://svelte.dev/" },
+                    { label: "Node.js", url: "https://nodejs.org/" },
+                ],
+                [
+                    {
+                        label: "HTML/CSS/JS",
+                        url: "https://developer.mozilla.org/docs/Web",
+                    },
+                    {
+                        label: "SQL",
+                        url: "https://en.wikipedia.org/wiki/SQL",
+                    },
+                    {
+                        label: "MongoDB",
+                        url: "https://www.mongodb.com/",
+                    },
+                ],
+                [
+                    { label: "+ C++", url: "https://isocpp.org/" },
+                    {
+                        label: "&",
+                        url: "https://www.lua.org/",
+                        sep: "",
+                    },
+                    {
+                        label: "Lua",
+                        url: "https://www.lua.org/",
+                        sep: "",
+                    },
+                ],
+            ],
+        },
+        {
+            title: "04 // INFRA & SELF-HOSTED",
+            lines: [
+                [
+                    {
+                        label: "Docker",
+                        url: "https://www.docker.com/",
+                    },
+                    {
+                        label: "(Dev Containers)",
+                        url: "https://containers.dev/",
+                        sep: "",
+                    },
+                ],
+                [{ label: "Caddy", url: "https://caddyserver.com/" }],
+                [
+                    { label: "Matrix", url: "https://matrix.org/" },
+                    {
+                        label: "(Tuwunel)",
+                        url: "https://github.com/matrix-construct/tuwunel",
+                        sep: "",
+                    },
+                ],
+                [
+                    { label: "Git", url: "https://git-scm.com/" },
+                    {
+                        label: "GitHub Actions",
+                        url: "https://github.com/features/actions",
+                    },
+                ],
+            ],
+        },
+    ];
+
     // Demo story events; the timeline renders them most recent first.
     const storyEvents = [
         {
@@ -332,10 +454,37 @@
         </div>
 
         <div class="my-technologies-note">
-            <PaperNote color="#e8da89" pin={MainPin} variant="lined">
+            <PaperNote color="#e8da89" pin={MainPin} width="65%">
                 <h2>My technologies:</h2>
             </PaperNote>
         </div>
+
+        {#each techCategories as category}
+            <div class="tech-note">
+                <PaperNote color="#e8da89" pin={MainPin} variant="lined">
+                    <h3>{category.title}</h3>
+                    <ul class="tech-list">
+                        {#each category.lines as line}
+                            <li>
+                                {#each line as link, i}
+                                    {#if i > 0}
+                                        <span class="tech-sep"
+                                            >&nbsp;{link.sep ?? "·"}&nbsp;</span
+                                        >
+                                    {/if}
+                                    <a
+                                        class="tech-link"
+                                        href={link.url}
+                                        target="_blank"
+                                        rel="noreferrer">{link.label}</a
+                                    >
+                                {/each}
+                            </li>
+                        {/each}
+                    </ul>
+                </PaperNote>
+            </div>
+        {/each}
     </Grid>
 
     <PaperNote color="#e8da89" pin={MainPin} variant="lined">
@@ -436,6 +585,53 @@
 
     .my-technologies-note {
         grid-column: span 2;
+        /* PaperNote's .note-wrapper is inline-block, so centering the
+           wrapper horizontally is just text alignment on the container. */
+        text-align: center;
+    }
+
+    /* Small single-category notes follow the header note and flow through
+       the board grid as ordinary (one-column) grid items. */
+
+    .tech-note h3 {
+        margin: 0 0 0.35rem;
+        padding-bottom: 0.15rem;
+        font-size: 1.1rem;
+        letter-spacing: 0.04em;
+        border-bottom: 1.5px dashed rgba(26, 26, 26, 0.35);
+    }
+
+    .tech-list {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        font-size: 1.25rem;
+        line-height: 1.35;
+        display: flex;
+        flex-direction: column;
+        gap: 0.2rem;
+    }
+
+    .tech-list li {
+        margin: 0;
+    }
+
+    /* Technology links read like normal handwriting until hovered, then
+       they turn the same link-blue used on "My projects" / "My github". */
+    .tech-link {
+        color: inherit;
+        text-decoration: none;
+        transition: color 0.15s ease;
+    }
+
+    .tech-link:hover,
+    .tech-link:focus-visible {
+        color: #0000af;
+        text-decoration: underline;
+    }
+
+    .tech-sep {
+        white-space: nowrap;
     }
 
     /* The clickable inner "My projects" note: neutral link styling — the
