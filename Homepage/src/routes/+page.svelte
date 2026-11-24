@@ -28,30 +28,7 @@
         lines: TechLink[][];
     }[] = [
         {
-            title: "01 // WORKBENCH",
-            lines: [
-                [{ label: "Fedora Linux", url: "https://fedoraproject.org/" }],
-                [{ label: "VS Code", url: "https://code.visualstudio.com/" }],
-                [{ label: "Cherry Studio", url: "https://www.cherry-ai.com/" }],
-                [{ label: "Element", url: "https://element.io/" }],
-            ],
-        },
-        {
-            title: "02 // AGENTS",
-            lines: [
-                [
-                    {
-                        label: "MCP",
-                        url: "https://modelcontextprotocol.io/",
-                    },
-                    { label: "A2A", url: "https://a2a-protocol.org/" },
-                ],
-                [{ label: "Cline", url: "https://cline.bot/" }],
-                [{ label: "OpenRouter", url: "https://openrouter.ai/" }],
-            ],
-        },
-        {
-            title: "03 // CORE & WEB",
+            title: "Programming Languages",
             lines: [
                 [
                     {
@@ -94,24 +71,20 @@
                         url: "https://www.mongodb.com/",
                     },
                 ],
-                [
-                    { label: "+ C++", url: "https://isocpp.org/" },
-                    {
-                        label: "&",
-                        url: "https://www.lua.org/",
-                        sep: "",
-                    },
-                    {
-                        label: "Lua",
-                        url: "https://www.lua.org/",
-                        sep: "",
-                    },
-                ],
             ],
         },
         {
-            title: "04 // INFRA & SELF-HOSTED",
+            title: "General Tech",
             lines: [
+                [{ label: "Fedora Linux", url: "https://fedoraproject.org/" }],
+                [
+                    {
+                        label: "MCP",
+                        url: "https://modelcontextprotocol.io/",
+                    },
+                    { label: "A2A", url: "https://a2a-protocol.org/" },
+                    { label: "OpenRouter", url: "https://openrouter.ai/" },
+                ],
                 [
                     {
                         label: "Docker",
@@ -122,8 +95,8 @@
                         url: "https://containers.dev/",
                         sep: "",
                     },
+                    { label: "Caddy", url: "https://caddyserver.com/" },
                 ],
-                [{ label: "Caddy", url: "https://caddyserver.com/" }],
                 [
                     { label: "Matrix", url: "https://matrix.org/" },
                     {
@@ -589,9 +562,6 @@
            wrapper horizontally is just text alignment on the container. */
         text-align: center;
     }
-
-    /* Small single-category notes follow the header note and flow through
-       the board grid as ordinary (one-column) grid items. */
 
     .tech-note h3 {
         margin: 0 0 0.35rem;
