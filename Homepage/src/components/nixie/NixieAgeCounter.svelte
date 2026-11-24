@@ -8,6 +8,7 @@
   export let birthDate: string = "2008-04-15T08:00";
   export let decimals: number = 8;
   export let label: string = "MY AGE";
+  export let showDeckHue: boolean = true;
 
   const MS_PER_YEAR = 1000 * 60 * 60 * 24 * 365.2425;
 
@@ -73,7 +74,9 @@
       style:background-image="linear-gradient(180deg, rgba(255, 255, 255, 0.22)
       0%, transparent 60%), url({scratchedMetalTile})"
     >
-      <div class="neon-deck-reflection"></div>
+      {#if showDeckHue}
+        <div class="neon-deck-reflection"></div>
+      {/if}
       <div class="socket-runway"></div>
     </div>
 

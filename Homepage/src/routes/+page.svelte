@@ -7,6 +7,7 @@
     import github from "../assets/images/github.png";
     import { Pin } from "../components/pin/pin";
     import NixieAgeCounter from "../components/nixie/NixieAgeCounter.svelte";
+    import GitActivityCounter from "../components/git/GitActivityCounter.svelte";
     import { onMount } from "svelte";
     import modernpainterdemo from "../assets/images/modernpainterdemo.gif";
     const MainPin = new Pin("#ff0000");
@@ -458,6 +459,14 @@
                 </PaperNote>
             </div>
         {/each}
+
+        <div class="git-activity-counter-container">
+            <GitActivityCounter
+                username="keinstein0"
+                label="GIT ACTIVITY"
+                showDeckHue={false}
+            />
+        </div>
     </Grid>
 
     <PaperNote color="#e8da89" pin={MainPin} variant="lined">
@@ -533,10 +542,17 @@
         justify-self: center;
     }
 
+    .git-activity-counter-container {
+        justify-self: center;
+        width: 100%;
+        max-width: 580px;
+    }
+
     /* Only span two columns once the grid actually has two columns
        (2 × 280px min column + 2.25rem gap). */
     @media (min-width: 650px) {
-        :global(.nixie-age-counter-container) {
+        :global(.nixie-age-counter-container),
+        .git-activity-counter-container {
             grid-column: span 2;
         }
     }
