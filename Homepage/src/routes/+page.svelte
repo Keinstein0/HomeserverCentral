@@ -331,32 +331,25 @@
             </PhotoNote>
         </div>
 
-        <PaperNote color="#e8da89" pin={MainPin}>
-            <h2>About me:</h2>
-            <p style="font-size: 20px;">
-                Hi, I'm Alexander Straub, and I'm currently enrolled in the IMS
-                program at the Alte Kanti and the Berufsbildung Baden. <br />
-                For me, the most exciting thing about computer science is
-                <b>turning ideas into finished products</b>. Does that sound
-                generic? Yes it does. But I still love seeing an idea or
-                architecture go from a piece of paper to something that actually
-                runs.
-            </p>
-        </PaperNote>
-
-        <PaperNote color="#e8da89" pin={MainPin}>
-            <h2>About me:</h2>
-            <p style="font-size: 20px;">
-                Hi, I'm Alexander Straub, and I'm currently enrolled in the IMS
-                program at the Alte Kanti and the Berufsbildung Baden. <br />
-                For me, the most exciting thing about computer science is
-                <b>turning ideas into finished products</b>. Does that sound
-                generic? Yes it does. But I still love seeing an idea or
-                architecture go from a piece of paper to something that actually
-                runs.
-            </p>
-        </PaperNote>
+        <div class="my-technologies-note">
+            <PaperNote color="#e8da89" pin={MainPin} variant="lined">
+                <h2>My technologies:</h2>
+            </PaperNote>
+        </div>
     </Grid>
+
+    <PaperNote color="#e8da89" pin={MainPin} variant="lined">
+        <h2>Contact me:</h2>
+        <p style="font-size: 20px;">
+            Hi, I'm Alexander Straub, and I'm currently enrolled in the IMS
+            program at the Alte Kanti and the Berufsbildung Baden. <br />
+            For me, the most exciting thing about computer science is
+            <b>turning ideas into finished products</b>. Does that sound
+            generic? Yes it does. But I still love seeing an idea or
+            architecture go from a piece of paper to something that actually
+            runs.
+        </p>
+    </PaperNote>
 </main>
 
 <style>
@@ -439,6 +432,10 @@
         grid-column: span 2;
         margin-left: 25%;
         margin-right: 25%;
+    }
+
+    .my-technologies-note {
+        grid-column: span 2;
     }
 
     /* The clickable inner "My projects" note: neutral link styling — the
